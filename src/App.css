@@ -1,38 +1,218 @@
+/* AI Document Humanizer Styles */
+
 .App {
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+/* Custom scrollbar for text areas */
+.text-editor-container::-webkit-scrollbar {
+  width: 8px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
+.text-editor-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.text-editor-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.text-editor-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Animation for processing states */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
   }
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.processing {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Drag and drop styles */
+.dropzone-active {
+  border-color: #1976d2 !important;
+  background-color: rgba(25, 118, 210, 0.04) !important;
+}
+
+.dropzone-reject {
+  border-color: #d32f2f !important;
+  background-color: rgba(211, 47, 47, 0.04) !important;
+}
+
+/* Text highlighting for differences */
+.text-highlight {
+  background-color: rgba(255, 235, 59, 0.3);
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: background-color 0.3s ease;
+}
+
+.text-highlight:hover {
+  background-color: rgba(255, 235, 59, 0.5);
+}
+
+/* Custom button styles */
+.humanize-button {
+  background: linear-gradient(45deg, #1976d2 30%, #42a5f5 90%);
+  border: 0;
+  border-radius: 8px;
+  box-shadow: 0 3px 5px 2px rgba(25, 118, 210, 0.3);
+  color: white;
+  height: 48px;
+  padding: 0 30px;
+  transition: all 0.3s ease;
+}
+
+.humanize-button:hover {
+  box-shadow: 0 6px 10px 4px rgba(25, 118, 210, 0.3);
+  transform: translateY(-2px);
+}
+
+.humanize-button:disabled {
+  background: #ccc;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Statistics cards */
+.stats-card {
+  transition: transform 0.2s ease-in-out;
+}
+
+.stats-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Progress bars */
+.progress-bar {
+  border-radius: 10px;
+  height: 8px;
+}
+
+/* Accordion customization */
+.MuiAccordion-root {
+  border-radius: 8px !important;
+  margin-bottom: 8px !important;
+}
+
+.MuiAccordion-root:before {
+  display: none;
+}
+
+/* Chip customization */
+.setting-chip {
+  margin: 2px;
+  transition: all 0.2s ease;
+}
+
+.setting-chip:hover {
+  transform: scale(1.05);
+}
+
+/* Text editor panels */
+.text-panel {
+  border-radius: 12px;
+  transition: box-shadow 0.3s ease;
+}
+
+.text-panel:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading states */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  border-radius: 8px;
+  z-index: 10;
 }
 
-.App-link {
-  color: #61dafb;
+/* Responsive design helpers */
+@media (max-width: 768px) {
+  .mobile-stack {
+    flex-direction: column !important;
+  }
+  
+  .mobile-full-width {
+    width: 100% !important;
+  }
+  
+  .mobile-hide {
+    display: none !important;
+  }
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
   }
-  to {
-    transform: rotate(360deg);
+  
+  .print-break {
+    page-break-before: always;
   }
+}
+
+/* Accessibility improvements */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Focus styles */
+.focus-visible {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+}
+
+/* Custom tooltip styles */
+.custom-tooltip {
+  background-color: rgba(0, 0, 0, 0.9) !important;
+  color: white !important;
+  font-size: 12px !important;
+  border-radius: 4px !important;
+}
+
+/* Error states */
+.error-state {
+  border-color: #d32f2f !important;
+  background-color: rgba(211, 47, 47, 0.04) !important;
+}
+
+/* Success states */
+.success-state {
+  border-color: #2e7d32 !important;
+  background-color: rgba(46, 125, 50, 0.04) !important;
+}
+
+/* Warning states */
+.warning-state {
+  border-color: #ed6c02 !important;
+  background-color: rgba(237, 108, 2, 0.04) !important;
 }
