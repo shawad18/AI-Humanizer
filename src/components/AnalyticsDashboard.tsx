@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Card,
-  CardContent,
   Typography,
   Grid,
   LinearProgress,
@@ -22,12 +21,10 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow,
-  Paper
+  TableRow
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
-  TrendingUp as TrendingUpIcon,
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
   Speed as SpeedIcon,
@@ -62,50 +59,22 @@ export const AnalyticsDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [refreshInterval, setRefreshInterval] = useState(30); // seconds
+  const [refreshInterval] = useState(30); // seconds
   const [timeRange, setTimeRange] = useState('24h');
   const [performanceAlerts, setPerformanceAlerts] = useState<PerformanceAlert[]>([]);
   const [securityAudits, setSecurityAudits] = useState<SecurityAuditResult[]>([]);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   // Performance thresholds for monitoring
-  const performanceThresholds = {
+  const performanceThresholds = useMemo(() => ({
     responseTime: 2000, // ms
     errorRate: 0.05, // 5%
     memoryUsage: 0.85, // 85%
     cpuUsage: 0.80, // 80%
-  };
-
-  // Fetch dashboard data
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const timeRangeMap: Record<string, { start: Date; end: Date }> = {
-        '1h': { start: new Date(Date.now() - 60 * 60 * 1000), end: new Date() },
-        '24h': { start: new Date(Date.now() - 24 * 60 * 60 * 1000), end: new Date() },
-        '7d': { start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), end: new Date() },
-        '30d': { start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), end: new Date() },
-      };
-
-      const data = await analyticsService.getDashboardData(timeRangeMap[timeRange]);
-      setDashboardData(data);
-      
-      // Check for performance alerts
-      checkPerformanceAlerts(data);
-      
-      setLastRefresh(new Date());
-    } catch (err) {
-      setError('Failed to load analytics data');
-      console.error('Analytics dashboard error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }), []);
 
   // Check for performance issues and create alerts
-  const checkPerformanceAlerts = (data: AnalyticsDashboardData) => {
+  const checkPerformanceAlerts = useCallback((data: AnalyticsDashboardData) => {
     const alerts: PerformanceAlert[] = [];
     const now = new Date();
 
@@ -163,10 +132,40 @@ export const AnalyticsDashboard: React.FC = () => {
     });
 
     setPerformanceAlerts(prev => [...alerts, ...prev.slice(0, 10)]); // Keep last 10 alerts
-  };
+  }, [performanceThresholds]);
+
+  // Fetch dashboard data
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const timeRangeMap: Record<string, { start: Date; end: Date }> = {
+        '1h': { start: new Date(Date.now() - 60 * 60 * 1000), end: new Date() },
+        '24h': { start: new Date(Date.now() - 24 * 60 * 60 * 1000), end: new Date() },
+        '7d': { start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), end: new Date() },
+        '30d': { start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), end: new Date() },
+      };
+
+      const data = await analyticsService.getDashboardData(timeRangeMap[timeRange]);
+      setDashboardData(data);
+      
+      // Check for performance alerts
+      checkPerformanceAlerts(data);
+      
+      setLastRefresh(new Date());
+    } catch (err) {
+      setError('Failed to load analytics data');
+      console.error('Analytics dashboard error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [timeRange, checkPerformanceAlerts]);
+
+
 
   // Replace mock security audit data with real security service data
-  const fetchSecurityAudits = async () => {
+  const fetchSecurityAudits = useCallback(async () => {
     try {
       const securityMetrics = securityService.getSecurityMetrics();
       const auditLogs = securityService.getAuditLogs({
@@ -224,13 +223,13 @@ export const AnalyticsDashboard: React.FC = () => {
       // Fallback to empty array if security service fails
       setSecurityAudits([]);
     }
-  };
+  }, []);
 
   // Auto-refresh effect
   useEffect(() => {
     fetchDashboardData();
     fetchSecurityAudits();
-  }, [timeRange]);
+  }, [timeRange, fetchDashboardData, fetchSecurityAudits]);
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -241,7 +240,7 @@ export const AnalyticsDashboard: React.FC = () => {
     }, refreshInterval * 1000);
 
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval, timeRange]);
+  }, [autoRefresh, refreshInterval, timeRange, fetchDashboardData, fetchSecurityAudits]);
 
   // Manual refresh
   const handleRefresh = () => {

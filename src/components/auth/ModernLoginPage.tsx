@@ -12,9 +12,7 @@ import {
   Link,
   Alert,
   Fade,
-  Slide,
-  useTheme,
-  useMediaQuery
+  Slide
 } from '@mui/material';
 import {
   Visibility,
@@ -37,8 +35,6 @@ export const ModernLoginPage: React.FC<ModernLoginPageProps> = ({
   onSwitchToRegister,
   onLoginSuccess
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { login } = useAuth();
   
   const [formData, setFormData] = useState({

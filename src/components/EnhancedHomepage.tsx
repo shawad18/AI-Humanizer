@@ -8,14 +8,10 @@ import {
   Button,
   Card,
   CardContent,
-  IconButton,
   Fade,
   Slide,
   Zoom,
-  useTheme,
-  useMediaQuery,
   LinearProgress,
-  Chip,
   Avatar,
   Rating
 } from '@mui/material';
@@ -40,8 +36,6 @@ interface EnhancedHomepageProps {
 }
 
 export const EnhancedHomepage: React.FC<EnhancedHomepageProps> = ({ onGetStarted }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [animateStats, setAnimateStats] = useState(false);
   const [visibleCards, setVisibleCards] = useState<number[]>([]);
   const statsRef = useRef<HTMLDivElement>(null);
