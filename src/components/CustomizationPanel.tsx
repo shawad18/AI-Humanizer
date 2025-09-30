@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -14,7 +14,14 @@ import {
   Chip,
   Accordion,
   AccordionSummary,
-  AccordionDetails
+  AccordionDetails,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Tooltip,
+  IconButton
 } from '@mui/material';
 import {
   AutoFixHigh,
@@ -23,6 +30,7 @@ import {
   Science,
   Psychology,
   ExpandMore,
+  HelpOutline,
   Palette,
   Work,
   Groups,
@@ -34,17 +42,18 @@ import {
   MenuBook,
   Article,
   Security,
-  Tune
+  Tune,
+  Fingerprint
 } from '@mui/icons-material';
-import { HumanizationSettings } from '../App';
+import { HumanizationSettings } from '../types/humanization';
 
 interface CustomizationPanelProps {
   settings: HumanizationSettings;
   onSettingsChange: (settings: HumanizationSettings) => void;
-  onHumanize: () => void;
-  onAnalyze: () => void;
-  isProcessing: boolean;
-  isAnalyzing: boolean;
+  onHumanize?: () => void;
+  onAnalyze?: () => void;
+  isProcessing?: boolean;
+  isAnalyzing?: boolean;
 }
 
 const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
@@ -55,11 +64,70 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
   isProcessing,
   isAnalyzing
 }) => {
+  const [presets, setPresets] = useState<{ [key: string]: HumanizationSettings }>({});
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [presetName, setPresetName] = useState('');
+  const [selectedPreset, setSelectedPreset] = useState('');
+
+  // Load presets from localStorage on component mount
+  useEffect(() => {
+    const savedPresets = localStorage.getItem('humanization-presets');
+    if (savedPresets) {
+      try {
+        setPresets(JSON.parse(savedPresets));
+      } catch (error) {
+        console.error('Failed to load presets:', error);
+      }
+    }
+  }, []);
+
   const handleSettingChange = (key: keyof HumanizationSettings, value: any) => {
     onSettingsChange({
       ...settings,
       [key]: value
     });
+  };
+
+  const handleSavePreset = () => {
+    if (presetName.trim()) {
+      const newPresets = {
+        ...presets,
+        [presetName]: { ...settings }
+      };
+      setPresets(newPresets);
+      localStorage.setItem('humanization-presets', JSON.stringify(newPresets));
+      setShowSaveDialog(false);
+      setPresetName('');
+    }
+  };
+
+  const handleLoadPreset = (presetKey: string) => {
+    if (presets[presetKey]) {
+      onSettingsChange(presets[presetKey]);
+      setSelectedPreset(presetKey);
+    }
+  };
+
+  const handleResetToDefaults = () => {
+    const defaultSettings: HumanizationSettings = {
+      formalityLevel: 5,
+      creativityLevel: 5,
+      vocabularyComplexity: 5,
+      sentenceComplexity: 5,
+      tone: 'neutral',
+      audience: 'general',
+      targetAudience: 'general',
+      writingStyle: 'narrative',
+      aiDetectionAvoidance: 5,
+      linguisticFingerprinting: 5,
+      personalityStrength: 5,
+      subjectArea: 'general',
+      preserveStructure: true,
+      addTransitions: true,
+      varyingSentenceLength: true
+    };
+    onSettingsChange(defaultSettings);
+    setSelectedPreset('');
   };
 
   const getFormalityLabel = (value: number) => {
@@ -78,6 +146,8 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
       case 'casual': return <Psychology />;
       case 'creative': return <Palette />;
       case 'professional': return <Work />;
+      case 'neutral': return <Tune />;
+      case 'conversational': return <Groups />;
       default: return <Psychology />;
     }
   };
@@ -87,7 +157,7 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
       case 'academic': return <School />;
       case 'professional': return <Work />;
       case 'student': return <Person />;
-      case 'expert': return <Science />;
+      case 'experts': return <Science />;
       case 'general': return <Groups />;
       default: return <Groups />;
     }
@@ -100,6 +170,9 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
       case 'persuasive': return <Campaign />;
       case 'narrative': return <MenuBook />;
       case 'expository': return <Article />;
+      case 'academic': return <School />;
+      case 'technical': return <Science />;
+      case 'creative': return <Palette />;
       default: return <Article />;
     }
   };
@@ -136,8 +209,10 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
         <AccordionDetails>
           <Box sx={{ mb: 3 }}>
             <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Tone</InputLabel>
+              <InputLabel id="tone-label">Tone</InputLabel>
               <Select
+                labelId="tone-label"
+                id="tone-select"
                 value={settings.tone}
                 label="Tone"
                 onChange={(e) => handleSettingChange('tone', e.target.value)}
@@ -178,6 +253,18 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
                     Professional
                   </Box>
                 </MenuItem>
+                <MenuItem value="neutral">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Tune fontSize="small" />
+                    Neutral
+                  </Box>
+                </MenuItem>
+                <MenuItem value="conversational">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Groups fontSize="small" />
+                    Conversational
+                  </Box>
+                </MenuItem>
               </Select>
             </FormControl>
 
@@ -192,12 +279,15 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
               step={1}
               marks
               valueLabelDisplay="auto"
+              aria-label="formality level"
               sx={{ mb: 2 }}
             />
 
             <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Subject Area</InputLabel>
+              <InputLabel id="subject-area-label">Subject Area</InputLabel>
               <Select
+                labelId="subject-area-label"
+                id="subject-area-select"
                 value={settings.subjectArea}
                 label="Subject Area"
                 onChange={(e) => handleSettingChange('subjectArea', e.target.value)}
@@ -211,8 +301,10 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
             </FormControl>
 
             <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Target Audience</InputLabel>
+              <InputLabel id="target-audience-label">Target Audience</InputLabel>
               <Select
+                labelId="target-audience-label"
+                id="target-audience-select"
                 value={settings.targetAudience}
                 label="Target Audience"
                 onChange={(e) => handleSettingChange('targetAudience', e.target.value)}
@@ -241,7 +333,7 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
                     Students
                   </Box>
                 </MenuItem>
-                <MenuItem value="expert">
+                <MenuItem value="experts">
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Science fontSize="small" />
                     Subject Experts
@@ -251,8 +343,10 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
             </FormControl>
 
             <FormControl fullWidth>
-              <InputLabel>Writing Style</InputLabel>
+              <InputLabel id="writing-style-label">Writing Style</InputLabel>
               <Select
+                labelId="writing-style-label"
+                id="writing-style-select"
                 value={settings.writingStyle}
                 label="Writing Style"
                 onChange={(e) => handleSettingChange('writingStyle', e.target.value)}
@@ -287,6 +381,24 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
                     Expository
                   </Box>
                 </MenuItem>
+                <MenuItem value="academic">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <School fontSize="small" />
+                    Academic
+                  </Box>
+                </MenuItem>
+                <MenuItem value="technical">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Science fontSize="small" />
+                    Technical
+                  </Box>
+                </MenuItem>
+                <MenuItem value="creative">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Palette fontSize="small" />
+                    Creative
+                  </Box>
+                </MenuItem>
               </Select>
             </FormControl>
           </Box>
@@ -310,6 +422,7 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
               step={1}
               marks
               valueLabelDisplay="auto"
+              aria-label="creativity level"
               sx={{ mb: 3 }}
             />
 
@@ -324,6 +437,7 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
               step={1}
               marks
               valueLabelDisplay="auto"
+              aria-label="vocabulary complexity"
               sx={{ mb: 3 }}
             />
 
@@ -338,6 +452,7 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
               step={1}
               marks
               valueLabelDisplay="auto"
+              aria-label="sentence complexity"
               sx={{ mb: 3 }}
             />
 
@@ -352,12 +467,20 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
               step={1}
               marks
               valueLabelDisplay="auto"
+              aria-label="personality strength"
               sx={{ mb: 3 }}
             />
 
-            <Typography gutterBottom>
-              AI Detection Avoidance: {settings.aiDetectionAvoidance}/10
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography gutterBottom>
+                AI Detection Avoidance: {settings.aiDetectionAvoidance}/10
+              </Typography>
+              <Tooltip title="Higher values make text less detectable by AI detection systems">
+                <IconButton size="small" aria-label="help for ai detection avoidance">
+                  <HelpOutline fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
             <Slider
               value={settings.aiDetectionAvoidance}
               onChange={(_, value) => handleSettingChange('aiDetectionAvoidance', value)}
@@ -366,6 +489,22 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
               step={1}
               marks
               valueLabelDisplay="auto"
+              aria-label="ai detection avoidance level"
+              sx={{ mb: 3 }}
+            />
+
+            <Typography gutterBottom>
+              Linguistic Fingerprinting: {settings.linguisticFingerprinting}/10
+            </Typography>
+            <Slider
+              value={settings.linguisticFingerprinting}
+              onChange={(_, value) => handleSettingChange('linguisticFingerprinting', value)}
+              min={1}
+              max={10}
+              step={1}
+              marks
+              valueLabelDisplay="auto"
+              aria-label="linguistic fingerprinting"
               sx={{ mb: 2 }}
             />
           </Box>
@@ -381,6 +520,7 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
             <FormControlLabel
               control={
                 <Switch
+                  id="preserve-structure-switch"
                   checked={settings.preserveStructure}
                   onChange={(e) => handleSettingChange('preserveStructure', e.target.checked)}
                 />
@@ -390,6 +530,7 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
             <FormControlLabel
               control={
                 <Switch
+                  id="add-transitions-switch"
                   checked={settings.addTransitions}
                   onChange={(e) => handleSettingChange('addTransitions', e.target.checked)}
                 />
@@ -399,12 +540,60 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
             <FormControlLabel
               control={
                 <Switch
+                  id="vary-sentence-length-switch"
                   checked={settings.varyingSentenceLength}
                   onChange={(e) => handleSettingChange('varyingSentenceLength', e.target.checked)}
                 />
               }
               label="Vary Sentence Length"
             />
+          </Box>
+        </AccordionDetails>
+      </Accordion>
+
+      <Divider sx={{ my: 2 }} />
+
+      {/* Preset Management */}
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMore />}>
+          <Typography variant="subtitle1">Preset Management</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <FormControl fullWidth>
+              <InputLabel id="load-preset-label">Load Preset</InputLabel>
+              <Select
+                labelId="load-preset-label"
+                id="load-preset-select"
+                value={selectedPreset}
+                onChange={(e) => handleLoadPreset(e.target.value)}
+                label="Load Preset"
+                aria-label="load preset"
+              >
+                {Object.keys(presets).map((presetKey) => (
+                  <MenuItem key={presetKey} value={presetKey}>
+                    {presetKey}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="outlined"
+                onClick={() => setShowSaveDialog(true)}
+                fullWidth
+              >
+                Save Preset
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={handleResetToDefaults}
+                fullWidth
+              >
+                Reset to Defaults
+              </Button>
+            </Box>
           </Box>
         </AccordionDetails>
       </Accordion>
@@ -455,34 +644,76 @@ const CustomizationPanel: React.FC<CustomizationPanelProps> = ({
             color="success"
             variant="outlined"
           />
+          <Chip
+            icon={<Fingerprint />}
+            label={`Fingerprinting: ${settings.linguisticFingerprinting}/10`}
+            size="small"
+            color="warning"
+            variant="outlined"
+          />
         </Box>
       </Box>
 
-      <Button
-        variant="outlined"
-        fullWidth
-        onClick={onAnalyze}
-        disabled={isAnalyzing}
-        startIcon={isAnalyzing ? undefined : <Analytics />}
-        sx={{ mt: 2 }}
-      >
-        {isAnalyzing ? 'Analyzing...' : 'Analyze Text'}
-      </Button>
+      {onAnalyze && (
+        <Button
+          variant="outlined"
+          fullWidth
+          onClick={onAnalyze}
+          disabled={isAnalyzing}
+          startIcon={isAnalyzing ? undefined : <Analytics />}
+          sx={{ mb: 1 }}
+        >
+          {isAnalyzing ? 'Analyzing...' : 'Analyze Text'}
+        </Button>
+      )}
 
-      <Button
-        variant="contained"
-        fullWidth
-        onClick={onHumanize}
-        disabled={isProcessing}
-        startIcon={isProcessing ? undefined : <AutoFixHigh />}
-        sx={{ mt: 1 }}
-      >
-        {isProcessing ? 'Humanizing...' : 'Humanize Text'}
-      </Button>
+      {onHumanize && (
+        <Button
+          variant="contained"
+          fullWidth
+          onClick={onHumanize}
+          disabled={isProcessing}
+          startIcon={isProcessing ? undefined : <AutoFixHigh />}
+          sx={{ mt: 1 }}
+        >
+          {isProcessing ? 'Humanizing...' : 'Humanize Text'}
+        </Button>
+      )}
 
       <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
         Tip: Adjust settings based on your target audience and document purpose.
       </Typography>
+
+      {/* Save Preset Dialog */}
+      <Dialog 
+        open={showSaveDialog} 
+        onClose={() => setShowSaveDialog(false)}
+        data-testid="save-preset-dialog"
+      >
+        <DialogTitle>Save Preset</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Preset Name"
+            placeholder="preset name"
+            fullWidth
+            variant="outlined"
+            value={presetName}
+            onChange={(e) => setPresetName(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowSaveDialog(false)}>Cancel</Button>
+          <Button 
+            onClick={handleSavePreset} 
+            variant="contained"
+            data-testid="save-preset-confirm"
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

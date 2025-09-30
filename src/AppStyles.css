@@ -1,0 +1,96 @@
+/* App.tsx Styles - Moved from inline sx props */
+
+/* Document Editor Paper */
+.document-editor-paper {
+  padding: 16px;
+  min-height: 70vh;
+}
+
+/* Document Editor Header */
+.document-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+/* Export Button */
+.export-button {
+  margin-left: 16px;
+}
+
+/* Detection Results Container */
+.detection-results-container {
+  margin-top: 24px;
+}
+
+/* Error Alert */
+.error-alert {
+  width: 100%;
+  z-index: 9999;
+  position: fixed;
+  top: 0;
+}
+
+/* Main Layout Container */
+.main-layout-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Main Content Area */
+.main-content-area {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* App Bar */
+.app-bar {
+  z-index: 1201; /* theme.zIndex.drawer + 1 */
+}
+
+/* App Bar Title */
+.app-bar-title {
+  flex-grow: 1;
+}
+
+/* User Info Container */
+.user-info-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* User Avatar */
+.user-avatar {
+  width: 32px;
+  height: 32px;
+}
+
+/* Auth Wrapper Container */
+.auth-wrapper-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5; /* theme.palette.background.default */
+}
+
+/* Auth Paper */
+.auth-paper {
+  padding: 32px;
+}
+
+/* Auth Header */
+.auth-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+/* Auth Icon */
+.auth-icon {
+  font-size: 48px;
+  color: #1976d2; /* theme.palette.primary.main */
+  margin-bottom: 16px;
+}

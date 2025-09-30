@@ -1,9 +1,15 @@
 export interface DetectionResult {
-  aiDetectionScore: number; // 0-100, higher means more likely AI-generated
-  plagiarismRisk: number; // 0-100, higher means higher plagiarism risk
-  readabilityScore: number; // 0-100, higher means more readable
-  uniquenessScore: number; // 0-100, higher means more unique
-  detectionDetails: {
+  isAIGenerated: boolean;
+  confidence: number; // 0-100, confidence in the detection
+  riskLevel: 'low' | 'medium' | 'high';
+  detectedPatterns: string[];
+  suggestions: string[];
+  // Legacy properties for backward compatibility
+  aiDetectionScore?: number;
+  plagiarismRisk?: number;
+  readabilityScore?: number;
+  uniquenessScore?: number;
+  detectionDetails?: {
     aiIndicators: string[];
     plagiarismIndicators: string[];
     qualityMetrics: {
@@ -13,7 +19,7 @@ export interface DetectionResult {
       coherenceScore: number;
     };
   };
-  recommendations: string[];
+  recommendations?: string[];
 }
 
 export class TextDetectionService {
@@ -42,6 +48,32 @@ export class TextDetectionService {
   ];
 
   async analyzeText(text: string): Promise<DetectionResult> {
+    // Handle null, undefined, or empty text
+    if (!text || text.trim().length === 0) {
+      return {
+        isAIGenerated: false,
+        confidence: 0,
+        riskLevel: 'low',
+        detectedPatterns: [],
+        suggestions: [],
+        aiDetectionScore: 0,
+        plagiarismRisk: 0,
+        readabilityScore: 0,
+        uniquenessScore: 0,
+        detectionDetails: {
+          aiIndicators: [],
+          plagiarismIndicators: [],
+          qualityMetrics: {
+            lexicalDiversity: 0,
+            sentenceVariation: 0,
+            vocabularyComplexity: 0,
+            coherenceScore: 0
+          }
+        },
+        recommendations: []
+      };
+    }
+
     const aiScore = this.calculateAIDetectionScore(text);
     const plagiarismRisk = this.calculatePlagiarismRisk(text);
     const readability = this.calculateReadabilityScore(text);
@@ -52,7 +84,23 @@ export class TextDetectionService {
     const plagiarismIndicators = this.findPlagiarismIndicators(text);
     const recommendations = this.generateRecommendations(aiScore, plagiarismRisk, qualityMetrics);
 
+    // Convert to new interface format
+    const isAIGenerated = aiScore > 50;
+    const confidence = aiScore;
+    const riskLevel: 'low' | 'medium' | 'high' = 
+      aiScore < 40 ? 'low' : 
+      aiScore < 65 ? 'medium' : 'high';
+    
+    const detectedPatterns = [...aiIndicators, ...plagiarismIndicators];
+    const suggestions = recommendations;
+
     return {
+      isAIGenerated,
+      confidence,
+      riskLevel,
+      detectedPatterns,
+      suggestions,
+      // Legacy properties for backward compatibility
       aiDetectionScore: aiScore,
       plagiarismRisk,
       readabilityScore: readability,
@@ -71,11 +119,27 @@ export class TextDetectionService {
     const words = text.toLowerCase().split(/\s+/);
     const sentences = text.split(/[.!?]+/).filter(s => s.trim());
 
-    // Check for AI patterns
+    // Check for AI patterns (more aggressive scoring)
     this.aiPatterns.forEach(pattern => {
       const matches = text.match(pattern);
       if (matches) {
-        score += matches.length * 5;
+        score += matches.length * 12; // Increased from 5 to 12
+      }
+    });
+
+    // Check for specific high-scoring AI words
+    const highScoreAIWords = [
+      'furthermore', 'moreover', 'additionally', 'consequently',
+      'comprehensive', 'systematic', 'strategic', 'optimal',
+      'implementation', 'methodology', 'utilization', 'facilitate',
+      'substantial', 'demonstrates', 'ensures', 'maximizes'
+    ];
+    
+    highScoreAIWords.forEach(word => {
+      const regex = new RegExp(`\\b${word}\\b`, 'gi');
+      const matches = text.match(regex);
+      if (matches) {
+        score += matches.length * 15; // High score for these specific words
       }
     });
 
@@ -84,18 +148,18 @@ export class TextDetectionService {
     const avgLength = sentenceLengths.reduce((a, b) => a + b, 0) / sentenceLengths.length;
     const variance = sentenceLengths.reduce((sum, len) => sum + Math.pow(len - avgLength, 2), 0) / sentenceLengths.length;
     
-    if (variance < 10) score += 15; // Low variance indicates AI
-    if (avgLength > 15 && avgLength < 25) score += 10; // AI typical range
+    if (variance < 10) score += 20; // Increased from 15
+    if (avgLength > 15 && avgLength < 25) score += 15; // Increased from 10
 
     // Check for repetitive vocabulary
     const uniqueWords = new Set(words);
     const lexicalDiversity = uniqueWords.size / words.length;
-    if (lexicalDiversity < 0.4) score += 20;
+    if (lexicalDiversity < 0.4) score += 25; // Increased from 20
 
     // Check for common AI phrases
     this.commonPhrases.forEach(phrase => {
       if (text.toLowerCase().includes(phrase)) {
-        score += 8;
+        score += 12; // Increased from 8
       }
     });
 
@@ -106,6 +170,37 @@ export class TextDetectionService {
     }, 0);
     
     if (formalCount > words.length * 0.02) score += 15;
+
+    // Check for human-like characteristics (reduce score)
+    const humanMarkers = [
+      /\b(omg|lol|wow|hey|yeah|nah|gonna|wanna|gotta)\b/gi,
+      /\b(you know|i mean|like|actually|honestly|frankly)\b/gi,
+      /[!]{1,3}|[?]{1,3}/g, // Emotional punctuation
+      /\b(i'm|you're|we're|they're|can't|won't|don't)\b/gi // Contractions
+    ];
+
+    let humanScore = 0;
+    humanMarkers.forEach(pattern => {
+      const matches = text.match(pattern);
+      if (matches) {
+        humanScore += matches.length * 8;
+      }
+    });
+
+    // Check for personal pronouns and conversational tone
+    const personalPronouns = text.match(/\b(I|me|my|you|your|we|us|our)\b/gi);
+    if (personalPronouns && personalPronouns.length > 0) {
+      humanScore += personalPronouns.length * 3;
+    }
+
+    // Check for questions and exclamations (human characteristics)
+    const questions = text.match(/\?/g);
+    const exclamations = text.match(/!/g);
+    if (questions) humanScore += questions.length * 5;
+    if (exclamations) humanScore += exclamations.length * 3;
+
+    // Subtract human score from AI score
+    score = Math.max(0, score - humanScore);
 
     return Math.min(100, Math.max(0, score));
   }
@@ -222,29 +317,57 @@ export class TextDetectionService {
   private findAIIndicators(text: string): string[] {
     const indicators: string[] = [];
 
-    this.aiPatterns.forEach((pattern, index) => {
+    // Check for GPT-like patterns
+    const gptPatterns = [
+      /\b(furthermore|moreover|additionally|consequently)\b/gi,
+      /\b(comprehensive|systematic|strategic|optimal)\b/gi,
+      /\b(implementation|methodology|utilization|facilitate)\b/gi
+    ];
+    
+    let gptMatches = 0;
+    gptPatterns.forEach(pattern => {
       const matches = text.match(pattern);
-      if (matches) {
-        const patternNames = [
-          'Formal transition words',
-          'Academic hedging phrases',
-          'Conclusion markers',
-          'Quantifier overuse',
-          'Business jargon',
-          'Academic vocabulary',
-          'Technical terminology',
-          'Optimization language'
-        ];
-        indicators.push(`${patternNames[index]}: ${matches.length} occurrences`);
-      }
+      if (matches) gptMatches += matches.length;
     });
+    
+    if (gptMatches >= 3) {
+      indicators.push('gpt_patterns');
+    }
 
+    // Check for academic style
+    const academicPatterns = [
+      /\b(this study|the methodology|the findings|the research)\b/gi,
+      /\b(examines|indicates|demonstrates|reveals)\b/gi,
+      /\b(significant|correlation|analysis|variables)\b/gi
+    ];
+    
+    let academicMatches = 0;
+    academicPatterns.forEach(pattern => {
+      const matches = text.match(pattern);
+      if (matches) academicMatches += matches.length;
+    });
+    
+    if (academicMatches >= 2) {
+      indicators.push('academic_style');
+    }
+
+    // Check for lack of personal voice
+    const personalPronouns = text.match(/\b(I|me|my|we|us|our|you|your)\b/gi);
+    const conversationalMarkers = text.match(/\b(well|you know|actually|honestly|frankly|hey)\b/gi);
     const sentences = text.split(/[.!?]+/).filter(s => s.trim());
+    
+    if ((!personalPronouns || personalPronouns.length < 2) && 
+        (!conversationalMarkers || conversationalMarkers.length === 0) &&
+        sentences.length > 2) {
+      indicators.push('lack_personal_voice');
+    }
+
+    // Check for other AI characteristics
     const sentenceLengths = sentences.map(s => s.trim().split(/\s+/).length);
     const avgLength = sentenceLengths.reduce((a, b) => a + b, 0) / sentenceLengths.length;
     
     if (avgLength > 20) {
-      indicators.push('Consistently long sentences (AI characteristic)');
+      indicators.push('long_sentences');
     }
 
     const words = text.toLowerCase().split(/\s+/);
@@ -252,7 +375,35 @@ export class TextDetectionService {
     const lexicalDiversity = uniqueWords.size / words.length;
     
     if (lexicalDiversity < 0.4) {
-      indicators.push('Low lexical diversity (repetitive vocabulary)');
+      indicators.push('low_lexical_diversity');
+    }
+
+    // Check for formal vocabulary
+    const formalWords = ['utilize', 'facilitate', 'implement', 'demonstrate', 'comprehensive', 'systematic', 'methodology', 'optimization', 'enhancement', 'establishment'];
+    const formalCount = formalWords.reduce((count, word) => {
+      return count + (text.toLowerCase().match(new RegExp(`\\b${word}\\b`, 'g')) || []).length;
+    }, 0);
+    
+    if (formalCount > words.length * 0.02) {
+      indicators.push('formal_vocabulary');
+    }
+
+    // Check for repetitive transitions
+    const transitionWords = ['furthermore', 'moreover', 'additionally', 'consequently', 'therefore', 'however', 'meanwhile'];
+    let transitionCount = 0;
+    transitionWords.forEach(transition => {
+      const matches = text.toLowerCase().match(new RegExp(`\\b${transition}\\b`, 'g'));
+      if (matches) transitionCount += matches.length;
+    });
+    
+    if (transitionCount >= 3) {
+      indicators.push('repetitive_transitions');
+    }
+
+    // Check for uniform sentence structure
+    const variance = sentenceLengths.reduce((sum, len) => sum + Math.pow(len - avgLength, 2), 0) / sentenceLengths.length;
+    if (variance < 5 && sentences.length > 2) {
+      indicators.push('uniform_structure');
     }
 
     return indicators;
@@ -292,6 +443,7 @@ export class TextDetectionService {
     if (aiScore > 60) {
       recommendations.push('Consider varying sentence structure and length');
       recommendations.push('Replace formal academic language with more natural expressions');
+      recommendations.push('Reduce excessive use of formal transition words');
       recommendations.push('Add personal insights and unique perspectives');
     }
 

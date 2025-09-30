@@ -119,15 +119,19 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   // Detect system theme preference
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    setSystemPrefersDark(mediaQuery.matches);
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      if (mediaQuery) {
+        setSystemPrefersDark(mediaQuery.matches);
 
-    const handleChange = (e: MediaQueryListEvent) => {
-      setSystemPrefersDark(e.matches);
-    };
+        const handleChange = (e: MediaQueryListEvent) => {
+          setSystemPrefersDark(e.matches);
+        };
 
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+        mediaQuery.addEventListener('change', handleChange);
+        return () => mediaQuery.removeEventListener('change', handleChange);
+      }
+    }
   }, []);
 
   // Load user theme preferences

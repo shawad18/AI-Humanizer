@@ -3,32 +3,24 @@ import {
   ThemeProvider as MuiThemeProvider,
   createTheme,
   CssBaseline,
-  AppBar,
-  Toolbar,
-  Typography,
   Container,
   Grid,
   Paper,
   Box,
   Alert,
-  Chip,
   Button,
-  Drawer,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  IconButton,
   Menu,
   MenuItem,
-  Avatar,
-  Divider
+  AppBar,
+  Toolbar,
+  Typography,
+  IconButton,
+  Avatar
 } from '@mui/material';
+import NavigationDrawer from './components/NavigationDrawer';
 import { 
   AutoFixHigh, 
   Security,
-  CheckCircle,
-  Warning,
   Download,
   Description,
   Group,
@@ -45,7 +37,7 @@ import { DocumentProvider } from './contexts/DocumentContext';
 // Components
 import TextEditor from './components/TextEditor';
 import CustomizationPanel from './components/CustomizationPanel';
-import TextStatistics from './components/TextStatistics';
+
 import DetectionResults from './components/DetectionResults';
 import ExportDialog from './components/ExportDialog';
 import AcademicIntegrityDialog from './components/AcademicIntegrityDialog';
@@ -57,13 +49,21 @@ import { DocumentManager } from './components/DocumentManager';
 import { CollaborationPanel } from './components/CollaborationPanel';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import ApiDocumentation from './components/ApiDocumentation';
+// Types
+import { HumanizationSettings } from './types/humanization';
 // Services
-import { humanizationEngine, HumanizationResult } from './services/humanizationEngine';
+import { humanizationEngine } from './services/humanizationEngine';
 import { DetectionResult } from './services/detectionService';
 import { advancedDetectionService } from './services/advancedDetectionService';
 import { ExportData } from './services/exportService';
 import { integrityService } from './services/integrityService';
+import { websocketService } from './services/websocketService';
+import { securityService } from './services/securityService';
+import { pwaService } from './services/pwaService';
+import { analyticsService } from './services/analyticsService';
+// Removed unused service imports
 import './App.css';
+import './AppStyles.css';
 
 const theme = createTheme({
   palette: {
@@ -87,21 +87,7 @@ const theme = createTheme({
   },
 });
 
-export interface HumanizationSettings {
-  tone: 'formal' | 'academic' | 'casual' | 'technical' | 'creative' | 'professional';
-  formalityLevel: number;
-  subjectArea: string;
-  preserveStructure: boolean;
-  addTransitions: boolean;
-  varyingSentenceLength: boolean;
-  creativityLevel: number;
-  vocabularyComplexity: number;
-  sentenceComplexity: number;
-  personalityStrength: number;
-  targetAudience: 'general' | 'academic' | 'professional' | 'student' | 'expert';
-  writingStyle: 'descriptive' | 'analytical' | 'persuasive' | 'narrative' | 'expository';
-  aiDetectionAvoidance: number;
-}
+
 
 // Main App Component with Navigation
 function MainApp() {
@@ -109,6 +95,11 @@ function MainApp() {
   const [currentView, setCurrentView] = useState<string>('humanizer');
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
+  // State for PWA features
+  const [error, setError] = useState<string | null>(null);
+  // Removed unused state variables
+  // const [installPrompt, setInstallPrompt] = useState<any>(null);
+  // const [isRealTimeMode, setIsRealTimeMode] = useState(false);
   
   // Humanizer state
   const [originalText, setOriginalText] = useState('');
@@ -127,9 +118,11 @@ function MainApp() {
     targetAudience: 'general',
     writingStyle: 'expository',
     aiDetectionAvoidance: 8,
+    linguisticFingerprinting: 7,
+    audience: 'general',
   });
   const [isProcessing, setIsProcessing] = useState(false);
-  const [humanizationResult, setHumanizationResult] = useState<HumanizationResult | null>(null);
+
   const [detectionResult, setDetectionResult] = useState<DetectionResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
@@ -153,6 +146,72 @@ function MainApp() {
     setShowResponsibleUseWarning(shouldShowWarning);
   }, []);
 
+  // Initialize advanced services
+  useEffect(() => {
+    
+    const initializeServices = async () => {
+      try {
+        // Initialize PWA service
+        await pwaService.initialize();
+        
+        // Initialize WebSocket for real-time features
+        if (user) {
+          websocketService.connect(user.id);
+        }
+        
+        // Initialize analytics
+        analyticsService.initialize();
+        
+        // Track app launch
+        analyticsService.trackEvent('page_view', {
+          userId: user?.id,
+          timestamp: Date.now()
+        });
+        
+        // Initialize security service
+        securityService.initialize();
+        
+        // Check for app updates
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'NEW_VERSION_AVAILABLE') {
+              // Show update notification
+              console.log('New version available');
+            }
+          });
+        }
+        
+        console.log('Services initialized successfully');
+        
+      } catch (error) {
+        console.error('Failed to initialize services:', error);
+        setError('Service initialization failed. Some features may be limited.');
+      }
+    };
+    
+    initializeServices();
+
+
+
+    // PWA install prompt - simplified since we removed the installPrompt state
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      // Notification can be shown directly without storing the event
+      console.log('App can be installed');
+    };
+    
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      // Removed orphaned listener cleanup (handleOnline/handleOffline never defined)
+      // Removed orphaned listener cleanup (handleOffline never defined)
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      if (user) {
+        websocketService.disconnect();
+      }
+    };
+  }, [user]);
+
   const handleTextUpload = (text: string) => {
     setOriginalText(text);
     if (text.trim()) {
@@ -172,13 +231,11 @@ function MainApp() {
       // Use advanced AI humanization engine
       const result = await humanizationEngine.humanizeText(text, settings);
       setHumanizedText(result.text);
-      setHumanizationResult(result);
       
       // Log usage for transparency
       integrityService.logUsage('humanize', text.length, true);
     } catch (error) {
       console.error('Error humanizing text:', error);
-      setHumanizationResult(null);
     } finally {
       setIsProcessing(false);
     }
@@ -195,6 +252,14 @@ function MainApp() {
       
       // Convert to compatible format for existing UI
       const result: DetectionResult = {
+        // Required properties for new interface
+        isAIGenerated: advancedResult.averageScore > 50,
+        confidence: advancedResult.confidence,
+        riskLevel: advancedResult.averageScore < 40 ? 'low' : 
+                  advancedResult.averageScore < 65 ? 'medium' : 'high',
+        detectedPatterns: advancedResult.summary.recommendations,
+        suggestions: advancedResult.summary.recommendations,
+        // Legacy properties for backward compatibility
         aiDetectionScore: advancedResult.averageScore,
         plagiarismRisk: Math.min(advancedResult.averageScore * 0.8, 100), // Estimate plagiarism risk
         readabilityScore: Math.max(100 - advancedResult.averageScore * 0.6, 0), // Inverse relationship
@@ -353,72 +418,8 @@ function MainApp() {
             />
           </Paper>
 
-          <Paper elevation={2} sx={{ p: 2 }}>
-            <TextStatistics
-              originalText={originalText}
-              humanizedText={humanizedText}
-            />
-          </Paper>
-        </Grid>
-
-        {/* Main Content - Text Editor */}
-        <Grid size={{ xs: 12, md: 9 }}>
-          {/* Humanization Results Display */}
-          {humanizationResult && (
-            <Paper elevation={2} sx={{ p: 2, mb: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  {humanizationResult.detectionRisk === 'low' ? (
-                    <CheckCircle color="success" />
-                  ) : (
-                    <Warning color={humanizationResult.detectionRisk === 'medium' ? 'warning' : 'error'} />
-                  )}
-                  <Typography variant="h6">
-                    Humanization Complete
-                  </Typography>
-                </Box>
-                <Chip 
-                  label={`${humanizationResult.confidence}% Confidence`}
-                  color={humanizationResult.confidence > 80 ? 'success' : humanizationResult.confidence > 60 ? 'primary' : 'warning'}
-                  variant="filled"
-                />
-                <Chip 
-                  label={`${humanizationResult.detectionRisk.toUpperCase()} Risk`}
-                  color={humanizationResult.detectionRisk === 'low' ? 'success' : humanizationResult.detectionRisk === 'medium' ? 'warning' : 'error'}
-                  variant="outlined"
-                />
-              </Box>
-              
-              <Alert 
-                severity={humanizationResult.detectionRisk === 'low' ? 'success' : humanizationResult.detectionRisk === 'medium' ? 'warning' : 'error'}
-                sx={{ mb: 2 }}
-              >
-                <Typography variant="body2">
-                  {humanizationResult.detectionRisk === 'low' && 'Excellent! Your text has been successfully humanized with low AI detection risk.'}
-                  {humanizationResult.detectionRisk === 'medium' && 'Good progress! Consider additional refinements to further reduce AI detection risk.'}
-                  {humanizationResult.detectionRisk === 'high' && 'Warning: High AI detection risk detected. Consider adjusting settings and re-humanizing.'}
-                </Typography>
-              </Alert>
-
-              <Typography variant="subtitle2" gutterBottom>
-                Applied Techniques:
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {humanizationResult.appliedTechniques.map((technique, index) => (
-                  <Chip 
-                    key={index}
-                    label={technique}
-                    size="small"
-                    variant="outlined"
-                    color="primary"
-                  />
-                ))}
-              </Box>
-            </Paper>
-          )}
-
-          <Paper elevation={2} sx={{ p: 2, minHeight: '70vh' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Paper elevation={2} className="document-editor-paper">
+            <Box className="document-editor-header">
               <Typography variant="h5" component="h2">
                 Document Editor
               </Typography>
@@ -427,7 +428,7 @@ function MainApp() {
                   variant="outlined"
                   startIcon={<Download />}
                   onClick={handleOpenExport}
-                  sx={{ ml: 2 }}
+                  className="export-button"
                 >
                   Export Document
                 </Button>
@@ -444,7 +445,7 @@ function MainApp() {
 
           {/* Detection Results */}
           {detectionResult && (
-            <Box sx={{ mt: 3 }}>
+            <Box className="detection-results-container">
               <DetectionResults 
                 result={detectionResult} 
                 isLoading={isAnalyzing}
@@ -459,56 +460,29 @@ function MainApp() {
   return (
     <MuiThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      {error && (
+        <Alert severity="error" className="error-alert">
+          {error}
+        </Alert>
+      )}
+      <Box className="main-layout-container">
         {/* Navigation Drawer */}
-        <Drawer
-          variant="permanent"
-          sx={{
-            width: 240,
-            flexShrink: 0,
-            '& .MuiDrawer-paper': {
-              width: 240,
-              boxSizing: 'border-box',
-            },
-          }}
-        >
-          <Toolbar>
-            <AutoFixHigh sx={{ mr: 2 }} />
-            <Typography variant="h6" noWrap component="div">
-              AI Humanizer
-            </Typography>
-          </Toolbar>
-          <Divider />
-          <List>
-            {menuItems.map((item) => (
-              <ListItem
-                key={item.id}
-                onClick={() => setCurrentView(item.id)}
-                sx={{
-                  cursor: 'pointer',
-                  backgroundColor: currentView === item.id ? 'action.selected' : 'transparent',
-                  '&:hover': {
-                    backgroundColor: 'action.hover',
-                  },
-                }}
-              >
-                <ListItemIcon>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.label} />
-              </ListItem>
-            ))}
-          </List>
-        </Drawer>
+        <NavigationDrawer
+          menuItems={menuItems}
+          currentView={currentView}
+          onViewChange={setCurrentView}
+        />
 
         {/* Main Content */}
-        <Box component="main" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-          <AppBar position="static" elevation={1} sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+        <Box component="main" className="main-content-area">
+          <AppBar position="static" elevation={1} className="app-bar">
             <Toolbar>
-              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+              <Typography variant="h6" component="div" className="app-bar-title">
                 {menuItems.find(item => item.id === currentView)?.label || 'AI Document Humanizer'}
               </Typography>
               
               {user ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box className="user-info-container">
                   <Typography variant="body2">
                     Welcome, {user.name}
                   </Typography>
@@ -521,7 +495,7 @@ function MainApp() {
                     onClick={handleMenuClick}
                     color="inherit"
                   >
-                    <Avatar sx={{ width: 32, height: 32 }}>
+                    <Avatar className="user-avatar">
                       {user.name.charAt(0).toUpperCase()}
                     </Avatar>
                   </IconButton>
@@ -594,19 +568,11 @@ function AuthWrapper() {
     return (
       <MuiThemeProvider theme={theme}>
         <CssBaseline />
-        <Box
-          sx={{
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'background.default',
-          }}
-        >
+        <Box className="auth-wrapper-container">
           <Container maxWidth="sm">
-            <Paper elevation={3} sx={{ p: 4 }}>
-              <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <AutoFixHigh sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
+            <Paper elevation={3} className="auth-paper">
+              <Box className="auth-header">
+                <AutoFixHigh className="auth-icon" />
                 <Typography variant="h4" component="h1" gutterBottom>
                   AI Document Humanizer
                 </Typography>
