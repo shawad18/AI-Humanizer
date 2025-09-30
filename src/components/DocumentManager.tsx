@@ -23,9 +23,9 @@ import {
   Select,
   Paper,
   Tooltip,
-  Alert
+  Alert,
+  Grid
 } from '@mui/material';
-import { Grid } from '@mui/material';
 import {
   Add as AddIcon,
   Search as SearchIcon,
@@ -203,7 +203,7 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({ onDocumentSele
         </Box>
 
         {/* Search and Filters */}
-        <Grid container spacing={2}>
+        <Grid spacing={2}>
           <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth

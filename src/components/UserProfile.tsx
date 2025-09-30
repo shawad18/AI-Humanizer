@@ -20,9 +20,9 @@ import {
   DialogContent,
   DialogActions,
   Alert,
-  Paper
+  Paper,
+  Grid
 } from '@mui/material';
-import { Grid } from '@mui/material';
 import {
   Edit as EditIcon,
   PhotoCamera,
@@ -209,7 +209,7 @@ export const UserProfile: React.FC = () => {
             <AnalyticsIcon />
             Usage Statistics
           </Typography>
-          <Grid container spacing={3}>
+          <Grid spacing={3}>
             <Grid size={{ xs: 12, sm: 4 }}>
               <Paper sx={{ p: 2, textAlign: 'center' }}>
                 <Typography variant="h3" color="primary" fontWeight="bold">

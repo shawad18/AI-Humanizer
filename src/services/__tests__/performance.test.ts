@@ -1,3 +1,5 @@
+export {};
+
 describe('Performance API', () => {
   it('should have performance.now available', () => {
     console.log('typeof performance:', typeof performance);

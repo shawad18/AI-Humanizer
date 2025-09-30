@@ -15,8 +15,10 @@ import {
   Toolbar,
   Typography,
   IconButton,
-  Avatar
+  Avatar,
+  Fade
 } from '@mui/material';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import NavigationDrawer from './components/NavigationDrawer';
 import { 
   AutoFixHigh, 
@@ -27,57 +29,72 @@ import {
   Analytics,
   Settings,
   Api,
-  Login,
-  Logout
+  Logout,
+  Home
 } from '@mui/icons-material';
+
 // Context Providers
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { DocumentProvider } from './contexts/DocumentContext';
+
 // Components
 import TextEditor from './components/TextEditor';
 import CustomizationPanel from './components/CustomizationPanel';
-
 import DetectionResults from './components/DetectionResults';
 import ExportDialog from './components/ExportDialog';
 import AcademicIntegrityDialog from './components/AcademicIntegrityDialog';
 import ResponsibleUseWarning from './components/ResponsibleUseWarning';
-import { LoginForm } from './components/auth/LoginForm';
-import { RegisterForm } from './components/auth/RegisterForm';
-import { UserProfile } from './components/UserProfile';
+
 import { DocumentManager } from './components/DocumentManager';
 import { CollaborationPanel } from './components/CollaborationPanel';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import ApiDocumentation from './components/ApiDocumentation';
+
+// New Enhanced Components
+import { ModernLoginPage } from './components/auth/ModernLoginPage';
+import { EnhancedHomepage } from './components/EnhancedHomepage';
+
 // Types
 import { HumanizationSettings } from './types/humanization';
+
 // Services
 import { humanizationEngine } from './services/humanizationEngine';
-import { DetectionResult } from './services/detectionService';
-import { advancedDetectionService } from './services/advancedDetectionService';
-import { ExportData } from './services/exportService';
+import { DetectionResult, detectionService } from './services/detectionService';
 import { integrityService } from './services/integrityService';
-import { websocketService } from './services/websocketService';
 import { securityService } from './services/securityService';
 import { pwaService } from './services/pwaService';
 import { analyticsService } from './services/analyticsService';
-// Removed unused service imports
+import { securityAuditScheduler } from './services/securityAuditScheduler';
+
+// Styles
 import './App.css';
 import './AppStyles.css';
+import './styles/AdvancedStyles.css';
 
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1976d2',
+      main: '#667eea',
     },
     secondary: {
-      main: '#dc004e',
+      main: '#f093fb',
     },
     background: {
-      default: '#f5f5f5',
+      default: '#f8f9fa',
     },
   },
   typography: {
+    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    h1: {
+      fontWeight: 800,
+    },
+    h2: {
+      fontWeight: 700,
+    },
+    h3: {
+      fontWeight: 700,
+    },
     h4: {
       fontWeight: 600,
     },
@@ -85,21 +102,143 @@ const theme = createTheme({
       fontWeight: 500,
     },
   },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          textTransform: 'none',
+          fontWeight: 600,
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: 16,
+        },
+      },
+    },
+  },
 });
 
+// Enhanced App Bar Component
+function EnhancedAppBar() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+    handleMenuClose();
+  };
+
+  // Don't show app bar on login page
+  if (location.pathname === '/login' || location.pathname === '/') {
+    return null;
+  }
+
+  return (
+    <AppBar 
+      position="sticky" 
+      className="enhanced-app-bar"
+      sx={{ 
+        zIndex: theme.zIndex.drawer + 1,
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        backdropFilter: 'blur(10px)',
+        boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)',
+      }}
+    >
+      <Toolbar>
+        <IconButton
+          edge="start"
+          color="inherit"
+          onClick={() => navigate('/app')}
+          sx={{ mr: 2 }}
+        >
+          <AutoFixHigh />
+        </IconButton>
+        <Typography 
+          variant="h6" 
+          component="div" 
+          sx={{ 
+            flexGrow: 1,
+            fontWeight: 700,
+            background: 'linear-gradient(45deg, #fff, #e3f2fd)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
+          className="app-bar-title"
+        >
+          AI Humanizer
+        </Typography>
+        
+        {user && (
+          <>
+            <IconButton
+              color="inherit"
+              onClick={() => navigate('/app')}
+              sx={{ mr: 1 }}
+            >
+              <Home />
+            </IconButton>
+            <IconButton
+              onClick={handleMenuOpen}
+              sx={{ ml: 1 }}
+            >
+              <Avatar 
+                sx={{ 
+                  width: 32, 
+                  height: 32,
+                  background: 'linear-gradient(45deg, #f093fb, #f5576c)',
+                }}
+              >
+                {user.email?.[0]?.toUpperCase() || 'U'}
+              </Avatar>
+            </IconButton>
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleMenuClose}
+              PaperProps={{
+                sx: {
+                  borderRadius: 2,
+                  mt: 1,
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                }
+              }}
+            >
+              <MenuItem onClick={handleMenuClose}>
+                <Settings sx={{ mr: 1 }} />
+                Settings
+              </MenuItem>
+              <MenuItem onClick={handleLogout}>
+                <Logout sx={{ mr: 1 }} />
+                Logout
+              </MenuItem>
+            </Menu>
+          </>
+        )}
+      </Toolbar>
+    </AppBar>
+  );
+}
 
 // Main App Component with Navigation
 function MainApp() {
-  const { user, logout } = useAuth();
-  const [currentView, setCurrentView] = useState<string>('humanizer');
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedDocument, setSelectedDocument] = useState<any>(null);
-  // State for PWA features
+  const [currentView, setCurrentView] = useState<string>('home');
   const [error, setError] = useState<string | null>(null);
-  // Removed unused state variables
-  // const [installPrompt, setInstallPrompt] = useState<any>(null);
-  // const [isRealTimeMode, setIsRealTimeMode] = useState(false);
   
   // Humanizer state
   const [originalText, setOriginalText] = useState('');
@@ -122,7 +261,6 @@ function MainApp() {
     audience: 'general',
   });
   const [isProcessing, setIsProcessing] = useState(false);
-
   const [detectionResult, setDetectionResult] = useState<DetectionResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
@@ -148,464 +286,336 @@ function MainApp() {
 
   // Initialize advanced services
   useEffect(() => {
-    
     const initializeServices = async () => {
       try {
-        // Initialize PWA service
-        await pwaService.initialize();
-        
-        // Initialize WebSocket for real-time features
-        if (user) {
-          websocketService.connect(user.id);
-        }
-        
-        // Initialize analytics
-        analyticsService.initialize();
-        
-        // Track app launch
-        analyticsService.trackEvent('page_view', {
-          userId: user?.id,
-          timestamp: Date.now()
-        });
-        
-        // Initialize security service
-        securityService.initialize();
-        
-        // Check for app updates
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.addEventListener('message', (event) => {
-            if (event.data && event.data.type === 'NEW_VERSION_AVAILABLE') {
-              // Show update notification
-              console.log('New version available');
-            }
-          });
-        }
-        
-        console.log('Services initialized successfully');
-        
+        await Promise.all([
+          securityService.initialize(),
+          pwaService.initialize(),
+          analyticsService.initialize()
+        ]);
+
+        // Initialize and start automated security audits
+        securityAuditScheduler.start();
+
+        console.log('Security audit scheduler started successfully');
       } catch (error) {
         console.error('Failed to initialize services:', error);
-        setError('Service initialization failed. Some features may be limited.');
+        setError('Failed to initialize some services. Some features may not work properly.');
       }
     };
-    
+
     initializeServices();
 
-
-
-    // PWA install prompt - simplified since we removed the installPrompt state
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      // Notification can be shown directly without storing the event
-      console.log('App can be installed');
-    };
-    
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
+    // Cleanup function to stop the scheduler when component unmounts
     return () => {
-      // Removed orphaned listener cleanup (handleOnline/handleOffline never defined)
-      // Removed orphaned listener cleanup (handleOffline never defined)
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      if (user) {
-        websocketService.disconnect();
-      }
+      securityAuditScheduler.stop();
     };
-  }, [user]);
+  }, []);
 
-  const handleTextUpload = (text: string) => {
-    setOriginalText(text);
-    if (text.trim()) {
-      handleHumanize(text);
-    }
-  };
-
-  const handleHumanize = async (text: string) => {
-    // Check if user has accepted guidelines for significant usage
-    if (text.length > 500 && integrityService.shouldShowIntegrityDialog()) {
-      setIntegrityDialogOpen(true);
+  const handleHumanize = async () => {
+    if (!originalText.trim()) {
+      setError('Please enter some text to humanize.');
       return;
     }
 
     setIsProcessing(true);
+    setError(null);
+
     try {
-      // Use advanced AI humanization engine
-      const result = await humanizationEngine.humanizeText(text, settings);
+      const result = await humanizationEngine.humanizeText(originalText, settings);
       setHumanizedText(result.text);
       
-      // Log usage for transparency
-      integrityService.logUsage('humanize', text.length, true);
+      // Track analytics
+      analyticsService.trackEvent('humanize', {
+        action: 'text_humanized',
+        value: {
+          originalLength: originalText.length,
+          humanizedLength: result.text.length,
+          settings: settings
+        }
+      });
     } catch (error) {
-      console.error('Error humanizing text:', error);
+      console.error('Humanization failed:', error);
+      setError('Failed to humanize text. Please try again.');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleAnalyzeText = async () => {
-    const textToAnalyze = humanizedText || originalText;
-    if (!textToAnalyze.trim()) return;
+  const handleAnalyze = async () => {
+    if (!humanizedText.trim()) {
+      setError('Please humanize some text first.');
+      return;
+    }
 
     setIsAnalyzing(true);
+    setError(null);
+
     try {
-      // Use advanced detection service for comprehensive analysis
-      const advancedResult = await advancedDetectionService.detectWithMultipleProviders(textToAnalyze);
-      
-      // Convert to compatible format for existing UI
-      const result: DetectionResult = {
-        // Required properties for new interface
-        isAIGenerated: advancedResult.averageScore > 50,
-        confidence: advancedResult.confidence,
-        riskLevel: advancedResult.averageScore < 40 ? 'low' : 
-                  advancedResult.averageScore < 65 ? 'medium' : 'high',
-        detectedPatterns: advancedResult.summary.recommendations,
-        suggestions: advancedResult.summary.recommendations,
-        // Legacy properties for backward compatibility
-        aiDetectionScore: advancedResult.averageScore,
-        plagiarismRisk: Math.min(advancedResult.averageScore * 0.8, 100), // Estimate plagiarism risk
-        readabilityScore: Math.max(100 - advancedResult.averageScore * 0.6, 0), // Inverse relationship
-        uniquenessScore: Math.max(100 - advancedResult.averageScore * 0.7, 0), // Inverse relationship
-        detectionDetails: {
-          aiIndicators: advancedResult.summary.recommendations,
-          plagiarismIndicators: [],
-          qualityMetrics: {
-            lexicalDiversity: Math.max(100 - advancedResult.averageScore * 0.5, 0),
-            sentenceVariation: Math.max(100 - advancedResult.averageScore * 0.4, 0),
-            vocabularyComplexity: Math.max(100 - advancedResult.averageScore * 0.3, 0),
-            coherenceScore: Math.max(100 - advancedResult.averageScore * 0.2, 0)
-          }
-        },
-        recommendations: advancedResult.summary.recommendations
-      };
-      
+      const result = await detectionService.analyzeText(humanizedText);
       setDetectionResult(result);
-      
-      // Log usage for transparency
-      integrityService.logUsage('analyze', textToAnalyze.length, true);
     } catch (error) {
       console.error('Analysis failed:', error);
-      setDetectionResult(null);
+      setError('Failed to analyze text. Please try again.');
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const handleOpenExport = () => {
-    setExportDialogOpen(true);
-  };
 
-  const getExportData = (): ExportData => {
-    return {
-      originalText,
-      humanizedText,
-      settings: settings,
-      detectionResult: detectionResult || undefined,
-      timestamp: new Date().toISOString()
-    };
-  };
 
-  const handleAcceptIntegrityGuidelines = () => {
-    integrityService.acceptGuidelines();
-    setIntegrityDialogOpen(false);
-    
-    // If there was pending text to humanize, process it now
-    if (originalText.trim()) {
-      handleHumanize(originalText);
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        setOriginalText(content);
+      };
+      reader.readAsText(file);
     }
   };
 
-  const handleOpenIntegrityGuidelines = () => {
-    setIntegrityDialogOpen(true);
-  };
-
-  const handleDismissWarning = () => {
-    integrityService.dismissWarning();
-    setShowResponsibleUseWarning(false);
-  };
-
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleLogout = () => {
-    logout();
-    handleMenuClose();
-    setCurrentView('humanizer');
-  };
-
-  const handleDocumentSelect = (document: any) => {
-    setSelectedDocument(document);
-    setCurrentView('collaboration');
-  };
-
-  const renderContent = () => {
+  const renderCurrentView = () => {
     switch (currentView) {
       case 'documents':
-        return <DocumentManager onDocumentSelect={handleDocumentSelect} />;
+        return <DocumentManager onDocumentSelect={() => {}} />;
       case 'collaboration':
-        return (
-          <CollaborationPanel 
-            documentId={selectedDocument?.id || 'demo-doc'} 
-            isOwner={selectedDocument?.author === user?.email || true}
-          />
-        );
+        return <CollaborationPanel documentId="default-doc" isOwner={true} />;
       case 'analytics':
         return <AnalyticsDashboard />;
       case 'api':
         return <ApiDocumentation />;
-      case 'profile':
-        return <UserProfile />;
       default:
-        return renderHumanizerContent();
+        return (
+          <Container maxWidth="xl" sx={{ py: 3 }}>
+            {error && (
+              <Fade in>
+                <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+                  {error}
+                </Alert>
+              </Fade>
+            )}
+
+            <Grid spacing={3}>
+               {/* Text Input Section */}
+               <Grid size={{ xs: 12, lg: 6 }}>
+                <Paper className="enhanced-card" sx={{ p: 3, height: '100%' }}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      Original Text
+                    </Typography>
+                    <Box>
+                      <input
+                        accept=".txt,.doc,.docx"
+                        style={{ display: 'none' }}
+                        id="file-upload"
+                        type="file"
+                        onChange={handleFileUpload}
+                      />
+                      <label htmlFor="file-upload">
+                        <Button
+                          variant="outlined"
+                          component="span"
+                          startIcon={<Description />}
+                          sx={{ mr: 1 }}
+                        >
+                          Upload
+                        </Button>
+                      </label>
+                      <Button
+                        variant="contained"
+                        onClick={handleHumanize}
+                        disabled={isProcessing || !originalText.trim()}
+                        className="enhanced-button"
+                        startIcon={<AutoFixHigh />}
+                      >
+                        {isProcessing ? 'Humanizing...' : 'Humanize'}
+                      </Button>
+                    </Box>
+                  </Box>
+                  <TextEditor
+                    originalText={originalText}
+                    humanizedText={humanizedText}
+                    onOriginalTextChange={setOriginalText}
+                    onHumanizedTextChange={setHumanizedText}
+                    isProcessing={isProcessing}
+                  />
+                </Paper>
+              </Grid>
+
+              {/* Humanized Text Section */}
+               <Grid size={{ xs: 12, lg: 6 }}>
+                <Paper className="enhanced-card" sx={{ p: 3, height: '100%' }}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      Humanized Text
+                    </Typography>
+                    <Box>
+                      <Button
+                        variant="outlined"
+                        onClick={handleAnalyze}
+                        disabled={isAnalyzing || !humanizedText.trim()}
+                        startIcon={<Security />}
+                        sx={{ mr: 1 }}
+                      >
+                        {isAnalyzing ? 'Analyzing...' : 'Analyze'}
+                      </Button>
+                      <Button
+                        variant="contained"
+                        onClick={() => setExportDialogOpen(true)}
+                        disabled={!humanizedText.trim()}
+                        startIcon={<Download />}
+                        className="enhanced-button"
+                      >
+                        Export
+                      </Button>
+                    </Box>
+                  </Box>
+                  <TextEditor
+                    originalText={originalText}
+                    humanizedText={humanizedText}
+                    onOriginalTextChange={setOriginalText}
+                    onHumanizedTextChange={setHumanizedText}
+                    isProcessing={isProcessing}
+                  />
+                </Paper>
+              </Grid>
+
+              {/* Customization Panel */}
+               <Grid size={{ xs: 12, lg: 4 }}>
+                 <CustomizationPanel
+                   settings={settings}
+                   onSettingsChange={setSettings}
+                 />
+               </Grid>
+
+               {/* Detection Results */}
+               <Grid size={{ xs: 12, lg: 8 }}>
+                {detectionResult && (
+                  <DetectionResults result={detectionResult} />
+                )}
+              </Grid>
+            </Grid>
+
+            {/* Dialogs */}
+            <ExportDialog
+              open={exportDialogOpen}
+              onClose={() => setExportDialogOpen(false)}
+              exportData={{
+                originalText,
+                humanizedText,
+                detectionResult: detectionResult || undefined,
+                settings,
+                timestamp: new Date().toISOString()
+              }}
+            />
+
+            <AcademicIntegrityDialog
+              open={integrityDialogOpen}
+              onClose={() => setIntegrityDialogOpen(false)}
+              onAccept={() => setIntegrityDialogOpen(false)}
+            />
+
+            {showResponsibleUseWarning && (
+              <ResponsibleUseWarning
+                variant="compact"
+                severity="warning"
+                onOpenGuidelines={() => console.log('Opening guidelines')}
+                showDismiss={true}
+                onDismiss={() => setShowResponsibleUseWarning(false)}
+              />
+            )}
+          </Container>
+        );
     }
   };
 
-  const renderHumanizerContent = () => (
-    <>
-      {showResponsibleUseWarning && (
-        <ResponsibleUseWarning
-          variant="compact"
-          severity="warning"
-          onOpenGuidelines={handleOpenIntegrityGuidelines}
-          showDismiss={true}
-          onDismiss={handleDismissWarning}
-        />
-      )}
-
-      <Grid container spacing={3}>
-        {/* Left Sidebar - Controls */}
-        <Grid size={{ xs: 12, md: 3 }}>
-          <Paper elevation={2} sx={{ p: 2, mb: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              <Security sx={{ mr: 1, verticalAlign: 'middle' }} />
-              Upload Document
-            </Typography>
-            <input
-              type="file"
-              accept=".txt,.docx,.pdf"
-              style={{ display: 'none' }}
-              id="document-upload"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onload = (evt) => {
-                    const text = evt.target?.result as string;
-                    handleTextUpload(text);
-                  };
-                  reader.readAsText(file);
-                }
-              }}
-            />
-            <label htmlFor="document-upload">
-              <Button variant="contained" component="span" startIcon={<Security />}>
-                Upload Document
-              </Button>
-            </label>
-          </Paper>
-
-          <Paper elevation={2} sx={{ p: 2, mb: 2 }}>
-            <CustomizationPanel
-              settings={settings}
-              onSettingsChange={setSettings}
-              onHumanize={() => originalText && handleHumanize(originalText)}
-              onAnalyze={handleAnalyzeText}
-              isProcessing={isProcessing}
-              isAnalyzing={isAnalyzing}
-            />
-          </Paper>
-
-          <Paper elevation={2} className="document-editor-paper">
-            <Box className="document-editor-header">
-              <Typography variant="h5" component="h2">
-                Document Editor
-              </Typography>
-              {humanizedText && (
-                <Button
-                  variant="outlined"
-                  startIcon={<Download />}
-                  onClick={handleOpenExport}
-                  className="export-button"
-                >
-                  Export Document
-                </Button>
-              )}
-            </Box>
-            <TextEditor
-              originalText={originalText}
-              humanizedText={humanizedText}
-              onOriginalTextChange={setOriginalText}
-              onHumanizedTextChange={setHumanizedText}
-              isProcessing={isProcessing}
-            />
-          </Paper>
-
-          {/* Detection Results */}
-          {detectionResult && (
-            <Box className="detection-results-container">
-              <DetectionResults 
-                result={detectionResult} 
-                isLoading={isAnalyzing}
-              />
-            </Box>
-          )}
-        </Grid>
-      </Grid>
-    </>
-  );
-
   return (
-    <MuiThemeProvider theme={theme}>
-      <CssBaseline />
-      {error && (
-        <Alert severity="error" className="error-alert">
-          {error}
-        </Alert>
-      )}
-      <Box className="main-layout-container">
-        {/* Navigation Drawer */}
-        <NavigationDrawer
-          menuItems={menuItems}
-          currentView={currentView}
-          onViewChange={setCurrentView}
-        />
-
-        {/* Main Content */}
-        <Box component="main" className="main-content-area">
-          <AppBar position="static" elevation={1} className="app-bar">
-            <Toolbar>
-              <Typography variant="h6" component="div" className="app-bar-title">
-                {menuItems.find(item => item.id === currentView)?.label || 'AI Document Humanizer'}
-              </Typography>
-              
-              {user ? (
-                <Box className="user-info-container">
-                  <Typography variant="body2">
-                    Welcome, {user.name}
-                  </Typography>
-                  <IconButton
-                    size="large"
-                    edge="end"
-                    aria-label="account of current user"
-                    aria-controls="menu-appbar"
-                    aria-haspopup="true"
-                    onClick={handleMenuClick}
-                    color="inherit"
-                  >
-                    <Avatar className="user-avatar">
-                      {user.name.charAt(0).toUpperCase()}
-                    </Avatar>
-                  </IconButton>
-                  <Menu
-                    id="menu-appbar"
-                    anchorEl={anchorEl}
-                    anchorOrigin={{
-                      vertical: 'top',
-                      horizontal: 'right',
-                    }}
-                    keepMounted
-                    transformOrigin={{
-                      vertical: 'top',
-                      horizontal: 'right',
-                    }}
-                    open={Boolean(anchorEl)}
-                    onClose={handleMenuClose}
-                  >
-                    <MenuItem onClick={() => { setCurrentView('profile'); handleMenuClose(); }}>
-                      <Settings sx={{ mr: 1 }} />
-                      Profile & Settings
-                    </MenuItem>
-                    <MenuItem onClick={handleLogout}>
-                      <Logout sx={{ mr: 1 }} />
-                      Logout
-                    </MenuItem>
-                  </Menu>
-                </Box>
-              ) : (
-                <Button
-                  color="inherit"
-                  startIcon={<Login />}
-                  onClick={() => setCurrentView('login')}
-                >
-                  Login
-                </Button>
-              )}
-            </Toolbar>
-          </AppBar>
-
-          <Container maxWidth="xl" sx={{ mt: 3, mb: 3, flexGrow: 1 }}>
-            {renderContent()}
-          </Container>
-        </Box>
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      <NavigationDrawer
+        menuItems={menuItems}
+        currentView={currentView}
+        onViewChange={setCurrentView}
+      />
+      <Box component="main" sx={{ flexGrow: 1, overflow: 'hidden' }}>
+        {renderCurrentView()}
       </Box>
-
-      {/* Export Dialog */}
-      <ExportDialog
-        open={exportDialogOpen}
-        onClose={() => setExportDialogOpen(false)}
-        exportData={getExportData()}
-      />
-
-      {/* Academic Integrity Dialog */}
-      <AcademicIntegrityDialog
-        open={integrityDialogOpen}
-        onClose={() => setIntegrityDialogOpen(false)}
-        onAccept={handleAcceptIntegrityGuidelines}
-      />
-    </MuiThemeProvider>
+    </Box>
   );
 }
 
-// Authentication Wrapper Component
-function AuthWrapper() {
-  const { user } = useAuth();
-  const [authView, setAuthView] = useState<'login' | 'register'>('login');
+// Protected Route Component
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
 
-  if (!user) {
+  if (isLoading) {
     return (
-      <MuiThemeProvider theme={theme}>
-        <CssBaseline />
-        <Box className="auth-wrapper-container">
-          <Container maxWidth="sm">
-            <Paper elevation={3} className="auth-paper">
-              <Box className="auth-header">
-                <AutoFixHigh className="auth-icon" />
-                <Typography variant="h4" component="h1" gutterBottom>
-                  AI Document Humanizer
-                </Typography>
-                <Typography variant="body1" color="text.secondary">
-                  Transform AI-generated content into natural, human-like text
-                </Typography>
-              </Box>
-              
-              {authView === 'login' ? (
-                <LoginForm onSwitchToRegister={() => setAuthView('register')} />
-              ) : (
-                <RegisterForm onSwitchToLogin={() => setAuthView('login')} />
-              )}
-            </Paper>
-          </Container>
-        </Box>
-      </MuiThemeProvider>
+      <Box 
+        display="flex" 
+        justifyContent="center" 
+        alignItems="center" 
+        minHeight="100vh"
+        className="loading-shimmer"
+      >
+        <Typography>Loading...</Typography>
+      </Box>
     );
   }
 
-  return <MainApp />;
+  return user ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
-// Root App Component with Providers
+// Main App Router
+function AppRouter() {
+  const navigate = useNavigate();
+
+  const handleLoginSuccess = () => {
+    navigate('/app');
+  };
+
+  const handleGetStarted = () => {
+    navigate('/login');
+  };
+
+  return (
+    <>
+      <EnhancedAppBar />
+      <Routes>
+        <Route path="/" element={<EnhancedHomepage onGetStarted={handleGetStarted} />} />
+        <Route 
+          path="/login" 
+          element={<ModernLoginPage onLoginSuccess={handleLoginSuccess} />} 
+        />
+        <Route 
+          path="/app" 
+          element={
+            <ProtectedRoute>
+              <MainApp />
+            </ProtectedRoute>
+          } 
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
+  );
+}
+
+// Root App Component
 function App() {
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <DocumentProvider>
-          <AuthWrapper />
-        </DocumentProvider>
-      </ThemeProvider>
-    </AuthProvider>
+    <MuiThemeProvider theme={theme}>
+      <CssBaseline />
+      <AuthProvider>
+        <ThemeProvider>
+          <DocumentProvider>
+            <Router>
+              <AppRouter />
+            </Router>
+          </DocumentProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </MuiThemeProvider>
   );
 }
 

@@ -192,7 +192,7 @@ describe('HumanizationEngine', () => {
       const secondResult = await humanizationEngine.humanizeText(text, defaultSettings);
 
       expect(firstResult.text).toBe(secondResult.text);
-      expect(secondResult.processingTime).toBeLessThan(firstResult.processingTime);
+      expect(secondResult.processingTime).toBeLessThan(firstResult.processingTime || 0);
     });
 
     it('should return different results for different settings', async () => {

@@ -224,7 +224,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
         </Alert>
       )}
 
-      <Grid container spacing={2} sx={{ height: 'calc(100vh - 300px)' }}>
+      <Grid spacing={2} sx={{ height: 'calc(100vh - 300px)' }}>
         <Grid size={{ xs: 12, md: 6 }}>
           <TextPanel
             title="Original Text"

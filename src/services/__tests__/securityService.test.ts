@@ -125,7 +125,7 @@ describe('SecurityService', () => {
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
       
       securityService.logSecurityAlert({
-        type: 'xss_attempt',
+        type: 'suspicious_activity',
         severity: 'high',
         message: 'XSS attempt detected',
         userId: 'test-user',
