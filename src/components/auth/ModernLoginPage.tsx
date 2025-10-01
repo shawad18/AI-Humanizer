@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -36,6 +37,7 @@ export const ModernLoginPage: React.FC<ModernLoginPageProps> = ({
   onLoginSuccess
 }) => {
   const { login } = useAuth();
+  const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
     email: '',
@@ -371,7 +373,7 @@ export const ModernLoginPage: React.FC<ModernLoginPageProps> = ({
                 <Link
                   component="button"
                   type="button"
-                  onClick={onSwitchToRegister}
+                  onClick={() => navigate('/register')}
                   sx={{
                     color: '#667eea',
                     textDecoration: 'none',

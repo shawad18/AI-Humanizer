@@ -53,6 +53,7 @@ import ApiDocumentation from './components/ApiDocumentation';
 
 // New Enhanced Components
 import { ModernLoginPage } from './components/auth/ModernLoginPage';
+import { ModernRegisterPage } from './components/auth/ModernRegisterPage';
 import { EnhancedHomepage } from './components/EnhancedHomepage';
 
 // Types
@@ -237,7 +238,7 @@ function EnhancedAppBar() {
 
 // Main App Component with Navigation
 function MainApp() {
-  const [currentView, setCurrentView] = useState<string>('home');
+  const [currentView, setCurrentView] = useState<string>('humanizer');
   const [error, setError] = useState<string | null>(null);
   
   // Humanizer state
@@ -586,6 +587,10 @@ function AppRouter() {
         <Route 
           path="/login" 
           element={<ModernLoginPage onLoginSuccess={handleLoginSuccess} />} 
+        />
+        <Route 
+          path="/register" 
+          element={<ModernRegisterPage onRegisterSuccess={handleLoginSuccess} />} 
         />
         <Route 
           path="/app" 

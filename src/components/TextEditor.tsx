@@ -35,12 +35,18 @@ const TextEditor: React.FC<TextEditorProps> = ({
   isProcessing
 }) => {
   const [isEditingHumanized, setIsEditingHumanized] = useState(false);
+  const [isEditingOriginal, setIsEditingOriginal] = useState(false);
   const [tempHumanizedText, setTempHumanizedText] = useState(humanizedText);
+  const [tempOriginalText, setTempOriginalText] = useState(originalText);
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
 
   React.useEffect(() => {
     setTempHumanizedText(humanizedText);
   }, [humanizedText]);
+
+  React.useEffect(() => {
+    setTempOriginalText(originalText);
+  }, [originalText]);
 
   const handleCopyToClipboard = async (text: string, type: 'original' | 'humanized') => {
     try {
@@ -65,6 +71,34 @@ const TextEditor: React.FC<TextEditorProps> = ({
   const handleCancelEdit = () => {
     setTempHumanizedText(humanizedText);
     setIsEditingHumanized(false);
+  };
+
+  const handleSaveOriginalEdit = () => {
+    onOriginalTextChange(tempOriginalText);
+    setIsEditingOriginal(false);
+  };
+
+  const handleCancelOriginalEdit = () => {
+    setTempOriginalText(originalText);
+    setIsEditingOriginal(false);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent, type: 'original' | 'humanized') => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData('text/plain');
+    
+    // Clean up the pasted text while preserving basic formatting
+    const cleanedText = pastedText
+      .replace(/\r\n/g, '\n') // Normalize line endings
+      .replace(/\r/g, '\n')   // Handle old Mac line endings
+      .replace(/\n{3,}/g, '\n\n') // Limit consecutive line breaks to 2
+      .trim();
+
+    if (type === 'original') {
+      setTempOriginalText(cleanedText);
+    } else if (type === 'humanized') {
+      setTempHumanizedText(cleanedText);
+    }
   };
 
   const getWordCount = (text: string) => {
@@ -158,20 +192,41 @@ const TextEditor: React.FC<TextEditorProps> = ({
           fullWidth
           multiline
           rows={20}
-          value={type === 'humanized' ? tempHumanizedText : text}
+          value={type === 'humanized' ? tempHumanizedText : (type === 'original' ? tempOriginalText : text)}
           onChange={(e) => {
             if (type === 'humanized') {
               setTempHumanizedText(e.target.value);
+            } else if (type === 'original') {
+              setTempOriginalText(e.target.value);
             } else if (onChange) {
               onChange(e.target.value);
             }
           }}
+          onPaste={(e) => handlePaste(e, type)}
+          placeholder={type === 'original' ? 'Start typing or paste your text here to humanize it...' : 'Edit your humanized text here...'}
           variant="outlined"
           sx={{
             '& .MuiOutlinedInput-root': {
-              fontFamily: 'monospace',
+              fontFamily: type === 'original' ? 'Georgia, serif' : 'monospace',
               fontSize: '14px',
-              lineHeight: 1.6
+              lineHeight: 1.6,
+              '& fieldset': {
+                borderColor: 'divider',
+              },
+              '&:hover fieldset': {
+                borderColor: 'primary.main',
+              },
+              '&.Mui-focused fieldset': {
+                borderColor: 'primary.main',
+                borderWidth: 2,
+              }
+            },
+            '& .MuiInputBase-input': {
+              '&::placeholder': {
+                color: 'text.secondary',
+                opacity: 0.7,
+                fontStyle: 'italic'
+              }
             }
           }}
         />
@@ -194,7 +249,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
         >
           {text || (
             <Typography color="text.secondary" fontStyle="italic">
-              {type === 'original' ? 'Upload a document or paste text to get started...' : 'Humanized text will appear here...'}
+              {type === 'original' ? 'Click the edit button to start typing, paste your text, or upload a document...' : 'Humanized text will appear here...'}
             </Typography>
           )}
         </Box>
@@ -228,8 +283,13 @@ const TextEditor: React.FC<TextEditorProps> = ({
         <Grid size={{ xs: 12, md: 6 }}>
           <TextPanel
             title="Original Text"
-            text={originalText}
+            text={isEditingOriginal ? tempOriginalText : originalText}
             onChange={onOriginalTextChange}
+            isEditable={true}
+            isEditing={isEditingOriginal}
+            onEdit={() => setIsEditingOriginal(true)}
+            onSave={handleSaveOriginalEdit}
+            onCancel={handleCancelOriginalEdit}
             type="original"
           />
         </Grid>
