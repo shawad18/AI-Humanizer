@@ -133,6 +133,12 @@ class PWAService {
 
   private async registerServiceWorker(): Promise<void> {
     if ('serviceWorker' in navigator) {
+      // Only enable Service Worker in production or when explicitly opted in.
+      const enableSW = process.env.NODE_ENV === 'production' || process.env.REACT_APP_ENABLE_SW === 'true';
+      if (!enableSW) {
+        console.log('Service Worker registration skipped (development mode)');
+        return;
+      }
       try {
         const swUrl = `/sw.js?v=${process.env.REACT_APP_SW_VERSION || Date.now()}`;
         const registration = await navigator.serviceWorker.register(swUrl);
