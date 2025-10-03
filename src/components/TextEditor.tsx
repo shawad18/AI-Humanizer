@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { securityService } from '../services/securityService';
 import {
   Box,
   Typography,
@@ -87,11 +88,12 @@ const TextEditor: React.FC<TextEditorProps> = ({
     e.preventDefault();
     const pastedText = e.clipboardData.getData('text/plain');
     
-    // Clean up the pasted text while preserving basic formatting
-    const cleanedText = pastedText
-      .replace(/\r\n/g, '\n') // Normalize line endings
-      .replace(/\r/g, '\n')   // Handle old Mac line endings
-      .replace(/\n{3,}/g, '\n\n') // Limit consecutive line breaks to 2
+    // Sanitize and clean up the pasted text while preserving basic formatting
+    const sanitized = securityService.sanitizeInput(pastedText);
+    const cleanedText = sanitized
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
       .trim();
 
     if (type === 'original') {

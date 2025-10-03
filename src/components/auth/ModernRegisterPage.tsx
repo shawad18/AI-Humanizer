@@ -48,7 +48,7 @@ export const ModernRegisterPage: React.FC<ModernRegisterPageProps> = ({
   onSwitchToLogin,
   onRegisterSuccess
 }) => {
-  const { register, isLoading } = useAuth();
+  const { register, isLoading, socialRegister } = useAuth();
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
@@ -129,8 +129,15 @@ export const ModernRegisterPage: React.FC<ModernRegisterPageProps> = ({
     }
   };
 
-  const handleSocialRegister = (provider: string) => {
-    setError('Social registration not implemented yet');
+    const handleSocialRegister = async (provider: string) => {
+    setError('');
+    try {
+      await socialRegister(provider as 'google' | 'github' | 'linkedin');
+      onRegisterSuccess?.();
+      navigate('/app');
+    } catch (err) {
+      setError('Social registration failed');
+    }
   };
 
   const handleSwitchToLogin = () => {

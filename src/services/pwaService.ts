@@ -56,6 +56,7 @@ export interface NotificationOptions {
     title: string;
     icon?: string;
   }>;
+  requireInteraction?: boolean;
 }
 
 class PWAService {
@@ -133,7 +134,8 @@ class PWAService {
   private async registerServiceWorker(): Promise<void> {
     if ('serviceWorker' in navigator) {
       try {
-        const registration = await navigator.serviceWorker.register('/sw.js');
+        const swUrl = `/sw.js?v=${process.env.REACT_APP_SW_VERSION || Date.now()}`;
+        const registration = await navigator.serviceWorker.register(swUrl);
         console.log('Service Worker registered:', registration);
 
         // Handle updates
@@ -390,7 +392,11 @@ class PWAService {
   }
 
   public async showNotification(options: NotificationOptions): Promise<void> {
-    if (!await this.requestNotificationPermission()) {
+    // Only show native notifications if permission is already granted;
+    // otherwise, skip to avoid disruptive permission prompts.
+    if (!('Notification' in window) || Notification.permission !== 'granted') {
+      const event = new CustomEvent('pwa-notification', { detail: options });
+      window.dispatchEvent(event);
       return;
     }
 
@@ -402,7 +408,8 @@ class PWAService {
         badge: options.badge || '/badge.png',
         tag: options.tag,
         data: options.data,
-        actions: options.actions
+        ...(options.actions ? { actions: options.actions } : {}),
+        requireInteraction: options.requireInteraction ?? false
       });
     } else {
       new Notification(options.title, {

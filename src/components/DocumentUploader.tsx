@@ -19,6 +19,7 @@ import {
 import { useDropzone } from 'react-dropzone';
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
+import { securityService } from '../services/securityService';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -93,6 +94,12 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({ onTextExtracted }) 
     setUploadedFile(file);
 
     try {
+      // Validate file upload via security service
+      const validation = securityService.validateFileUpload(file);
+      if (!validation.valid) {
+        throw new Error(validation.error || 'Invalid file upload.');
+      }
+
       let extractedText = '';
 
       if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
@@ -106,8 +113,11 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({ onTextExtracted }) 
         throw new Error('Unsupported file type. Please upload a Word document, PDF, or text file.');
       }
 
-      if (extractedText.trim()) {
-        onTextExtracted(extractedText);
+      // Sanitize extracted text before passing to parent
+      const sanitizedText = securityService.sanitizeInput(extractedText);
+
+      if (sanitizedText.trim()) {
+        onTextExtracted(sanitizedText);
       } else {
         setError('No text found in the uploaded document.');
       }
@@ -141,8 +151,16 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({ onTextExtracted }) 
   };
 
   const handlePastedTextSubmit = () => {
-    if (pastedText.trim()) {
-      onTextExtracted(pastedText);
+    // Sanitize and normalize pasted text before processing
+    const sanitized = securityService.sanitizeInput(pastedText);
+    const normalized = sanitized
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
+    if (normalized.trim()) {
+      onTextExtracted(normalized);
       setError(null);
     } else {
       setError('Please enter some text to humanize.');

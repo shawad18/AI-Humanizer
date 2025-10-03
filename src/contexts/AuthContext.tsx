@@ -1,10 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { isEnabled as socialAuthEnabled, loginWithPopup } from '../services/socialAuth';
 
 export interface User {
   id: string;
   email: string;
   name: string;
   avatar?: string;
+  authProvider?: 'password' | 'google' | 'github' | 'linkedin';
   subscription: 'free' | 'premium' | 'enterprise';
   preferences: {
     theme: 'light' | 'dark' | 'auto';
@@ -22,6 +24,8 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
+  socialLogin: (provider: 'google' | 'github' | 'linkedin', profile?: Partial<User>) => Promise<void>;
+  socialRegister: (provider: 'google' | 'github' | 'linkedin', profile?: Partial<User>) => Promise<void>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   updatePreferences: (preferences: Partial<User['preferences']>) => void;
@@ -74,6 +78,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         id: `user_${Date.now()}`,
         email,
         name: email.split('@')[0],
+        authProvider: 'password',
         subscription: 'free',
         preferences: {
           theme: 'light',
@@ -104,6 +109,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         id: `user_${Date.now()}`,
         email,
         name,
+        authProvider: 'password',
         subscription: 'free',
         preferences: {
           theme: 'light',
@@ -122,6 +128,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+      const socialLogin = async (
+    provider: 'google' | 'github' | 'linkedin',
+    profile?: Partial<User>
+  ): Promise<void> => {
+    setIsLoading(true);
+    try {
+      if (provider === 'linkedin') {
+        throw new Error('LinkedIn login is not supported in current setup');
+      }
+      if (!socialAuthEnabled()) {
+        throw new Error('Social login is not configured');
+      }
+
+      const p = await loginWithPopup(provider);
+
+      const newUser: User = {
+        id: `user_${Date.now()}`,
+        email: p.email,
+        name: p.name,
+        avatar: p.avatar,
+        authProvider: provider,
+        subscription: 'free',
+        preferences: {
+          theme: 'light',
+          language: 'en',
+          autoSave: true,
+          notifications: true,
+        },
+        createdAt: new Date(),
+        lastLogin: new Date(),
+      };
+
+      setUser(newUser);
+      localStorage.setItem('ai-humanizer-user', JSON.stringify(newUser));
+    } catch (error) {
+      const msg = (error as Error)?.message || 'Social login failed';
+      throw new Error(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const socialRegister = async (
+    provider: 'google' | 'github' | 'linkedin',
+    profile?: Partial<User>
+  ): Promise<void> => {
+    // For this simulated flow, registration is identical to social login
+    return socialLogin(provider, profile);
   };
 
   const logout = () => {
@@ -154,6 +210,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoading,
     login,
     register,
+    socialLogin,
+    socialRegister,
     logout,
     updateUser,
     updatePreferences
@@ -165,3 +223,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+
+

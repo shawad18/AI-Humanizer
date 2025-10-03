@@ -27,7 +27,7 @@ interface LoginFormProps {
 }
 
 export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onClose }) => {
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, socialLogin } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -59,10 +59,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onClos
     }
   };
 
-  const handleSocialLogin = (provider: 'google' | 'github') => {
-    // In a real implementation, this would handle OAuth
-    console.log(`Login with ${provider}`);
-    setError('Social login not implemented yet');
+    const handleSocialLogin = async (provider: 'google' | 'github') => {
+    try {
+      await socialLogin(provider);
+    } catch (err) {
+      setError('Social login failed');
+    }
   };
 
   return (

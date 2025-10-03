@@ -36,7 +36,7 @@ export const ModernLoginPage: React.FC<ModernLoginPageProps> = ({
   onSwitchToRegister,
   onLoginSuccess
 }) => {
-  const { login } = useAuth();
+  const { login, socialLogin } = useAuth();
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
@@ -77,9 +77,18 @@ export const ModernLoginPage: React.FC<ModernLoginPageProps> = ({
     }
   };
 
-  const handleSocialLogin = (provider: string) => {
-    console.log(`Login with ${provider}`);
-    // Implement social login logic here
+    const handleSocialLogin = async (provider: string) => {
+    setIsLoading(true);
+    setError('');
+    try {
+      await socialLogin(provider as 'google' | 'github' | 'linkedin');
+      onLoginSuccess?.();
+      navigate('/app');
+    } catch (err) {
+      setError('Social login failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

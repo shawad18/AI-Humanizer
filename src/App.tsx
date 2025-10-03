@@ -40,6 +40,8 @@ import { DocumentProvider } from './contexts/DocumentContext';
 
 // Components
 import TextEditor from './components/TextEditor';
+import DocumentUploader from './components/DocumentUploader';
+import TextStatistics from './components/TextStatistics';
 import CustomizationPanel from './components/CustomizationPanel';
 import DetectionResults from './components/DetectionResults';
 import ExportDialog from './components/ExportDialog';
@@ -435,6 +437,14 @@ function MainApp() {
                       </Button>
                     </Box>
                   </Box>
+                  {/* Uploader for DOCX/PDF/TXT and paste */}
+                  <Box sx={{ mb: 2 }}>
+                    <DocumentUploader
+                      onTextExtracted={(text) => setOriginalText(text)}
+                    />
+                  </Box>
+
+                  {/* Editor for original and humanized text */}
                   <TextEditor
                     originalText={originalText}
                     humanizedText={humanizedText}
@@ -442,6 +452,14 @@ function MainApp() {
                     onHumanizedTextChange={setHumanizedText}
                     isProcessing={isProcessing}
                   />
+
+                  {/* Statistics panel */}
+                  <Box sx={{ mt: 2 }}>
+                    <TextStatistics
+                      originalText={originalText}
+                      humanizedText={humanizedText}
+                    />
+                  </Box>
                 </Paper>
               </Grid>
 

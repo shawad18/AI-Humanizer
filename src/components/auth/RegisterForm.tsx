@@ -38,7 +38,7 @@ interface PasswordStrength {
 }
 
 export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onClose }) => {
-  const { register, isLoading } = useAuth();
+  const { register, isLoading, socialRegister } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -117,10 +117,12 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin, onC
     }
   };
 
-  const handleSocialRegister = (provider: 'google' | 'github') => {
-    // In a real implementation, this would handle OAuth
-    console.log(`Register with ${provider}`);
-    setError('Social registration not implemented yet');
+    const handleSocialRegister = async (provider: 'google' | 'github') => {
+    try {
+      await socialRegister(provider);
+    } catch (err) {
+      setError('Social registration failed');
+    }
   };
 
   return (
