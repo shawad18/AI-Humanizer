@@ -137,6 +137,18 @@ class PWAService {
       const enableSW = process.env.NODE_ENV === 'production' || process.env.REACT_APP_ENABLE_SW === 'true';
       if (!enableSW) {
         console.log('Service Worker registration skipped (development mode)');
+        // Proactively unregister existing service workers and clear caches to avoid interference.
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((reg) => reg.unregister()));
+          if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map((key) => caches.delete(key)));
+          }
+          console.log('Service Worker cleanup done (unregistered and caches cleared)');
+        } catch (cleanupError) {
+          console.warn('Service Worker cleanup failed:', cleanupError);
+        }
         return;
       }
       try {
