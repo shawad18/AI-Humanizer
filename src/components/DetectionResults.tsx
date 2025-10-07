@@ -121,7 +121,7 @@ const DetectionResults: React.FC<DetectionResultsProps> = ({ result, isLoading =
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
                 {getScoreIcon(result.aiDetectionScore || 0, true)}
                 <Typography variant="h4" sx={{ ml: 1, color: `${getScoreColor(result.aiDetectionScore || 0, true)}.main` }}>
-                  {result.aiDetectionScore || 0}
+                  {Math.round(result.aiDetectionScore || 0)}
                 </Typography>
               </Box>
               <Typography variant="body2" color="text.secondary">
@@ -140,7 +140,7 @@ const DetectionResults: React.FC<DetectionResultsProps> = ({ result, isLoading =
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
                 {getScoreIcon(result.plagiarismRisk || 0, true)}
                 <Typography variant="h4" sx={{ ml: 1, color: `${getScoreColor(result.plagiarismRisk || 0, true)}.main` }}>
-                  {result.plagiarismRisk || 0}
+                  {Math.round(result.plagiarismRisk || 0)}
                 </Typography>
               </Box>
               <Typography variant="body2" color="text.secondary">

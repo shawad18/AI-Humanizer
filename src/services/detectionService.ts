@@ -248,14 +248,16 @@ export class TextDetectionService {
   }
 
   private calculateReadabilityScore(text: string): number {
-    const words = text.split(/\s+/).length;
-    const sentences = text.split(/[.!?]+/).filter(s => s.trim()).length;
-    const syllables = this.countSyllables(text);
+    const wordMatches = (text.toLowerCase().match(/[a-z]+/gi) ?? []) as string[];
+    const words = wordMatches.length || 1;
+    const sentences = (text.split(/[.!?]+/).filter(s => s.trim()).length) || 1;
+    // Sum syllables using a per-word heuristic to avoid extreme values
+    const syllables = wordMatches.reduce((sum: number, w: string) => sum + this.countSyllablesWord(w), 0);
 
     // Flesch Reading Ease Score
     const fleschScore = 206.835 - (1.015 * (words / sentences)) - (84.6 * (syllables / words));
     
-    // Convert to 0-100 scale where higher is better
+    // Clamp to 0-100 scale where higher is better
     return Math.min(100, Math.max(0, fleschScore));
   }
 
@@ -296,7 +298,7 @@ export class TextDetectionService {
     const variance = sentenceLengths.reduce((sum, len) => sum + Math.pow(len - avgLength, 2), 0) / sentenceLengths.length;
     const sentenceVariation = Math.min(100, variance * 2);
 
-    const complexWords = words.filter(word => this.countSyllables(word) > 2).length;
+    const complexWords = words.filter(word => this.countSyllablesWord(word) > 2).length;
     const vocabularyComplexity = (complexWords / words.length) * 100;
 
     // Simple coherence check based on transition words
@@ -472,12 +474,17 @@ export class TextDetectionService {
     return recommendations;
   }
 
-  private countSyllables(text: string): number {
-    return text.toLowerCase()
-      .replace(/[^a-z]/g, '')
-      .replace(/[aeiouy]+/g, 'a')
-      .replace(/a$/, '')
-      .length || 1;
+  private countSyllablesWord(word: string): number {
+    let w = (word || '').toLowerCase().replace(/[^a-z]/g, '');
+    if (!w) return 0;
+    // Remove trailing silent 'e'
+    if (w.endsWith('e')) {
+      const withoutE = w.slice(0, -1);
+      if (withoutE.match(/[aeiouy]/)) w = withoutE;
+    }
+    const matches = w.match(/[aeiouy]+/g);
+    const count = matches ? matches.length : 0;
+    return Math.max(1, count);
   }
 }
 

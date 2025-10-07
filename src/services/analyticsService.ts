@@ -1,6 +1,13 @@
 // Advanced Analytics Service for Usage Patterns, Performance Metrics, and A/B Testing
 import { apiClient } from './apiClient';
 
+// Disable analytics network calls in development unless explicitly enabled
+const ANALYTICS_NETWORK_ENABLED = (() => {
+  const flag = (process.env.REACT_APP_ENABLE_ANALYTICS || '').toLowerCase();
+  if (flag) return flag === 'true';
+  return process.env.NODE_ENV === 'production';
+})();
+
 export interface UserBehaviorEvent {
   eventType: 'page_view' | 'button_click' | 'text_input' | 'export' | 'humanize' | 'ai_detect' | 'error';
   eventData: {
@@ -126,6 +133,7 @@ class AnalyticsService {
   private flushInterval = 30000; // 30 seconds
   private abTestAssignments: Map<string, string> = new Map();
   private flushTimer: NodeJS.Timeout | null = null;
+  private analyticsNetworkEnabled: boolean = ANALYTICS_NETWORK_ENABLED;
 
   constructor() {
     this.sessionId = this.generateSessionId();
@@ -330,10 +338,12 @@ class AnalyticsService {
       timestamp: new Date()
     };
 
-    // Send conversion immediately
-    apiClient.post('/analytics/ab-tests/conversions', result).catch(error => {
-      console.error('Failed to track conversion:', error);
-    });
+    // Send conversion immediately only when networking is enabled
+    if (this.analyticsNetworkEnabled) {
+      apiClient.post('/analytics/ab-tests/conversions', result).catch(error => {
+        console.error('Failed to track conversion:', error);
+      });
+    }
 
     this.trackEvent('button_click', {
       action: 'ab_test_conversion',
@@ -496,6 +506,12 @@ class AnalyticsService {
   private async flushEvents(): Promise<void> {
     if (this.eventQueue.length === 0) return;
 
+    if (!this.analyticsNetworkEnabled) {
+      // Drop a batch silently in dev to avoid network errors
+      this.eventQueue.splice(0, this.batchSize);
+      return;
+    }
+
     const events = this.eventQueue.splice(0, this.batchSize);
     
     try {
@@ -510,6 +526,12 @@ class AnalyticsService {
   // Flush performance metrics to server
   private async flushPerformanceMetrics(): Promise<void> {
     if (this.performanceQueue.length === 0) return;
+
+    if (!this.analyticsNetworkEnabled) {
+      // Drop a batch silently in dev to avoid network errors
+      this.performanceQueue.splice(0, this.batchSize);
+      return;
+    }
 
     const metrics = this.performanceQueue.splice(0, this.batchSize);
     
