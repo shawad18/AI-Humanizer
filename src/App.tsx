@@ -47,6 +47,7 @@ import DetectionResults from './components/DetectionResults';
 import ExportDialog from './components/ExportDialog';
 import AcademicIntegrityDialog from './components/AcademicIntegrityDialog';
 import ResponsibleUseWarning from './components/ResponsibleUseWarning';
+import StatusBanner from './components/StatusBanner';
 
 import { DocumentManager } from './components/DocumentManager';
 import { CollaborationPanel } from './components/CollaborationPanel';
@@ -74,6 +75,7 @@ import { securityAuditScheduler } from './services/securityAuditScheduler';
 import './App.css';
 import './AppStyles.css';
 import './styles/AdvancedStyles.css';
+import { useBanner } from './hooks/useBanner';
 
 const theme = createTheme({
   palette: {
@@ -270,6 +272,11 @@ function MainApp() {
   const [integrityDialogOpen, setIntegrityDialogOpen] = useState(false);
   const [showResponsibleUseWarning, setShowResponsibleUseWarning] = useState(true);
 
+  // Organized banners
+  const humanizeBanner = useBanner();
+  const qualityBanner = useBanner();
+  const analysisBanner = useBanner();
+
   const menuItems = [
     { id: 'humanizer', label: 'AI Humanizer', icon: <AutoFixHigh /> },
     { id: 'documents', label: 'Documents', icon: <Description /> },
@@ -315,6 +322,40 @@ function MainApp() {
     };
   }, []);
 
+  // Compute humanization quality for banner (aligned with TextStatistics)
+  const computeQuality = (orig: string, hum: string) => {
+    const calc = (text: string) => {
+      if (!text.trim()) {
+        return { readabilityScore: 0, complexityScore: 0, avgWordsPerSentence: 0 };
+      }
+      const words = text.trim().split(/\s+/);
+      const sentences = text.split(/[.!?]+/).filter(s => s.trim());
+      const wordCount = words.length;
+      const sentenceCount = sentences.length;
+      const avgWordsPerSentence = sentenceCount > 0 ? wordCount / sentenceCount : 0;
+      const readabilityScore = Math.max(0, Math.min(100, 100 - (avgWordsPerSentence - 15) * 2));
+      const averageWordLength = words.reduce((sum, w) => sum + w.length, 0) / (wordCount || 1);
+      const complexityScore = Math.min(100, (averageWordLength * 10) + (avgWordsPerSentence * 2));
+      return { readabilityScore: Math.round(readabilityScore), complexityScore: Math.round(complexityScore), avgWordsPerSentence };
+    };
+    const o = calc(orig);
+    const h = calc(hum);
+    let score = 50;
+    const readabilityImprovement = h.readabilityScore - o.readabilityScore;
+    const complexityReduction = o.complexityScore - h.complexityScore;
+    const sentenceVariation = Math.abs(h.avgWordsPerSentence - 20);
+    score += readabilityImprovement * 0.5;
+    score += complexityReduction * 0.3;
+    score -= sentenceVariation * 2;
+    score = Math.max(0, Math.min(100, Math.round(score)));
+    let label: 'Excellent' | 'Good' | 'Fair' | 'Needs Improvement';
+    if (score >= 80) label = 'Excellent';
+    else if (score >= 60) label = 'Good';
+    else if (score >= 40) label = 'Fair';
+    else label = 'Needs Improvement';
+    return { score, label };
+  };
+
   const handleHumanize = async () => {
     if (!originalText.trim()) {
       setError('Please enter some text to humanize.');
@@ -327,6 +368,21 @@ function MainApp() {
     try {
       const result = await humanizationEngine.humanizeText(originalText, settings);
       setHumanizedText(result.text);
+      // Show success banner
+      humanizeBanner.showBanner({
+        variant: 'success',
+        title: 'Text has been humanized!',
+        message: 'You can edit the result, copy it, or download it as a file.'
+      });
+      // Quality banner
+      const q = computeQuality(originalText, result.text);
+      const variant = q.label === 'Excellent' || q.label === 'Good' ? 'success' : q.label === 'Fair' ? 'warning' : 'error';
+      qualityBanner.showBanner({
+        variant,
+        title: `Humanization Quality: ${q.label}`,
+        message: `${q.score}% - Based on readability, complexity, and sentence variation`,
+        progress: q.score
+      });
       
       // Track analytics
       analyticsService.trackEvent('humanize', {
@@ -340,6 +396,7 @@ function MainApp() {
     } catch (error) {
       console.error('Humanization failed:', error);
       setError('Failed to humanize text. Please try again.');
+      humanizeBanner.showBanner({ variant: 'error', title: 'Humanization failed', message: 'Please try again.' });
     } finally {
       setIsProcessing(false);
     }
@@ -357,9 +414,27 @@ function MainApp() {
     try {
       const result = await detectionService.analyzeText(humanizedText);
       setDetectionResult(result);
+      const highRisk = (result as any).riskLevel?.toLowerCase() === 'high';
+      // confidence is 0-100; compare against 60 (not 0.6)
+      const confidentAI = result.isAIGenerated && result.confidence >= 60;
+      if (highRisk || confidentAI) {
+        analysisBanner.showBanner({
+          variant: 'error',
+          title: 'Potential AI content detected',
+          // confidence is already a 0-100 percentage; do not multiply by 100
+          message: `Risk: ${(result as any).riskLevel || 'unknown'}, Confidence: ${Math.round(result.confidence)}%`
+        });
+      } else {
+        analysisBanner.showBanner({
+          variant: 'info',
+          title: 'Analysis complete',
+          message: 'No high-risk AI indicators found.'
+        });
+      }
     } catch (error) {
       console.error('Analysis failed:', error);
       setError('Failed to analyze text. Please try again.');
+      analysisBanner.showBanner({ variant: 'error', title: 'Analysis failed', message: 'Please try again.' });
     } finally {
       setIsAnalyzing(false);
     }
@@ -392,6 +467,29 @@ function MainApp() {
       default:
         return (
           <Container maxWidth="xl" sx={{ py: 3 }}>
+            {/* Status banners */}
+            <StatusBanner
+              open={humanizeBanner.open}
+              variant={humanizeBanner.variant}
+              title={humanizeBanner.title}
+              message={humanizeBanner.message}
+              onClose={humanizeBanner.closeBanner}
+            />
+            <StatusBanner
+              open={qualityBanner.open}
+              variant={qualityBanner.variant}
+              title={qualityBanner.title}
+              message={qualityBanner.message}
+              progress={qualityBanner.progress}
+              onClose={qualityBanner.closeBanner}
+            />
+            <StatusBanner
+              open={analysisBanner.open}
+              variant={analysisBanner.variant}
+              title={analysisBanner.title}
+              message={analysisBanner.message}
+              onClose={analysisBanner.closeBanner}
+            />
             {error && (
               <Fade in>
                 <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>

@@ -119,11 +119,11 @@ export class TextDetectionService {
     const words = text.toLowerCase().split(/\s+/);
     const sentences = text.split(/[.!?]+/).filter(s => s.trim());
 
-    // Check for AI patterns (more aggressive scoring)
+    // Check for AI patterns (moderate scoring)
     this.aiPatterns.forEach(pattern => {
       const matches = text.match(pattern);
       if (matches) {
-        score += matches.length * 12; // Increased from 5 to 12
+        score += matches.length * 6; // Calibrated from 12 to 6
       }
     });
 
@@ -139,7 +139,7 @@ export class TextDetectionService {
       const regex = new RegExp(`\\b${word}\\b`, 'gi');
       const matches = text.match(regex);
       if (matches) {
-        score += matches.length * 15; // High score for these specific words
+        score += matches.length * 8; // Calibrated from 15 to 8
       }
     });
 
@@ -148,18 +148,18 @@ export class TextDetectionService {
     const avgLength = sentenceLengths.reduce((a, b) => a + b, 0) / sentenceLengths.length;
     const variance = sentenceLengths.reduce((sum, len) => sum + Math.pow(len - avgLength, 2), 0) / sentenceLengths.length;
     
-    if (variance < 10) score += 20; // Increased from 15
-    if (avgLength > 15 && avgLength < 25) score += 15; // Increased from 10
+    if (variance < 10) score += 12; // Calibrated from 20 to 12
+    if (avgLength > 15 && avgLength < 25) score += 10; // Calibrated from 15 to 10
 
     // Check for repetitive vocabulary
     const uniqueWords = new Set(words);
     const lexicalDiversity = uniqueWords.size / words.length;
-    if (lexicalDiversity < 0.4) score += 25; // Increased from 20
+    if (lexicalDiversity < 0.4) score += 15; // Calibrated from 25 to 15
 
     // Check for common AI phrases
     this.commonPhrases.forEach(phrase => {
       if (text.toLowerCase().includes(phrase)) {
-        score += 12; // Increased from 8
+        score += 8; // Calibrated from 12 to 8
       }
     });
 
@@ -169,7 +169,7 @@ export class TextDetectionService {
       return count + (text.toLowerCase().match(new RegExp(`\\b${word}\\b`, 'g')) || []).length;
     }, 0);
     
-    if (formalCount > words.length * 0.02) score += 15;
+    if (formalCount > words.length * 0.02) score += 10; // Calibrated from 15 to 10
 
     // Check for human-like characteristics (reduce score)
     const humanMarkers = [
@@ -183,21 +183,21 @@ export class TextDetectionService {
     humanMarkers.forEach(pattern => {
       const matches = text.match(pattern);
       if (matches) {
-        humanScore += matches.length * 8;
+        humanScore += matches.length * 10; // Increase human-likeness subtraction
       }
     });
 
     // Check for personal pronouns and conversational tone
     const personalPronouns = text.match(/\b(I|me|my|you|your|we|us|our)\b/gi);
     if (personalPronouns && personalPronouns.length > 0) {
-      humanScore += personalPronouns.length * 3;
+      humanScore += personalPronouns.length * 5; // Calibrated from 3 to 5
     }
 
     // Check for questions and exclamations (human characteristics)
     const questions = text.match(/\?/g);
     const exclamations = text.match(/!/g);
-    if (questions) humanScore += questions.length * 5;
-    if (exclamations) humanScore += exclamations.length * 3;
+    if (questions) humanScore += questions.length * 6; // Slightly higher subtraction
+    if (exclamations) humanScore += exclamations.length * 5;
 
     // Subtract human score from AI score
     score = Math.max(0, score - humanScore);

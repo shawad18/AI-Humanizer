@@ -1,0 +1,89 @@
+.status-banner {
+  display: flex;
+  width: 100%;
+  margin: 12px 0 16px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+
+.status-banner__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+}
+
+.status-banner__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.status-banner__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.status-banner__message {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.status-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-banner__action-btn {
+  margin-left: 4px;
+}
+
+/* Progress */
+.status-banner__progress {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.status-banner__progress-bar {
+  width: 160px;
+  height: 6px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.35);
+  overflow: hidden;
+}
+.status-banner__progress-fill {
+  height: 100%;
+  background: rgba(255,255,255,0.9);
+}
+.status-banner__progress-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Variants */
+.status-banner--success {
+  background: #22c55e;
+  color: #ffffff;
+}
+.status-banner--warning {
+  background: #f59e0b;
+  color: #ffffff;
+}
+.status-banner--error {
+  background: #ef4444;
+  color: #ffffff;
+}
+.status-banner--info {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+/* Dark mode tweaks */
+@media (prefers-color-scheme: dark) {
+  .status-banner__message { opacity: 0.95; }
+  .status-banner__progress-bar { background: rgba(255,255,255,0.25); }
+}
