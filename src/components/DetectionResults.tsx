@@ -28,6 +28,10 @@ import {
 } from '@mui/icons-material';
 import { DetectionResult } from '../services/detectionService';
 
+// Ensure all displayed scores stay within 0–100
+const clamp = (n: number) => Math.min(100, Math.max(0, n || 0));
+const fmt = (n: number) => Math.round(clamp(n));
+
 interface DetectionResultsProps {
   result: DetectionResult | null;
   isLoading?: boolean;
@@ -105,11 +109,11 @@ const DetectionResults: React.FC<DetectionResultsProps> = ({ result, isLoading =
 
       {/* Overall Status Alert */}
       <Alert 
-        severity={getAlertSeverity(result.aiDetectionScore || 0, result.plagiarismRisk || 0)}
+        severity={getAlertSeverity(clamp(result.aiDetectionScore || 0), clamp(result.plagiarismRisk || 0))}
         sx={{ mb: 3 }}
       >
         <Typography variant="body2">
-          {getOverallMessage(result.aiDetectionScore || 0, result.plagiarismRisk || 0)}
+          {getOverallMessage(clamp(result.aiDetectionScore || 0), clamp(result.plagiarismRisk || 0))}
         </Typography>
       </Alert>
 
@@ -119,9 +123,9 @@ const DetectionResults: React.FC<DetectionResultsProps> = ({ result, isLoading =
           <Card variant="outlined">
             <CardContent sx={{ textAlign: 'center' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                {getScoreIcon(result.aiDetectionScore || 0, true)}
-                <Typography variant="h4" sx={{ ml: 1, color: `${getScoreColor(result.aiDetectionScore || 0, true)}.main` }}>
-                  {Math.round(result.aiDetectionScore || 0)}
+                {getScoreIcon(clamp(result.aiDetectionScore || 0), true)}
+                <Typography variant="h4" sx={{ ml: 1, color: `${getScoreColor(clamp(result.aiDetectionScore || 0), true)}.main` }}>
+                  {fmt(result.aiDetectionScore || 0)}
                 </Typography>
               </Box>
               <Typography variant="body2" color="text.secondary">
@@ -138,9 +142,9 @@ const DetectionResults: React.FC<DetectionResultsProps> = ({ result, isLoading =
           <Card variant="outlined">
             <CardContent sx={{ textAlign: 'center' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                {getScoreIcon(result.plagiarismRisk || 0, true)}
-                <Typography variant="h4" sx={{ ml: 1, color: `${getScoreColor(result.plagiarismRisk || 0, true)}.main` }}>
-                  {Math.round(result.plagiarismRisk || 0)}
+                {getScoreIcon(clamp(result.plagiarismRisk || 0), true)}
+                <Typography variant="h4" sx={{ ml: 1, color: `${getScoreColor(clamp(result.plagiarismRisk || 0), true)}.main` }}>
+                  {fmt(result.plagiarismRisk || 0)}
                 </Typography>
               </Box>
               <Typography variant="body2" color="text.secondary">
@@ -157,9 +161,9 @@ const DetectionResults: React.FC<DetectionResultsProps> = ({ result, isLoading =
           <Card variant="outlined">
             <CardContent sx={{ textAlign: 'center' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                {getScoreIcon(result.readabilityScore || 0)}
-                <Typography variant="h4" sx={{ ml: 1, color: `${getScoreColor(result.readabilityScore || 0)}.main` }}>
-                  {Math.round(result.readabilityScore || 0)}
+                {getScoreIcon(clamp(result.readabilityScore || 0))}
+                <Typography variant="h4" sx={{ ml: 1, color: `${getScoreColor(clamp(result.readabilityScore || 0))}.main` }}>
+                  {fmt(result.readabilityScore || 0)}
                 </Typography>
               </Box>
               <Typography variant="body2" color="text.secondary">
@@ -176,9 +180,9 @@ const DetectionResults: React.FC<DetectionResultsProps> = ({ result, isLoading =
           <Card variant="outlined">
             <CardContent sx={{ textAlign: 'center' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-                {getScoreIcon(result.uniquenessScore || 0)}
-                <Typography variant="h4" sx={{ ml: 1, color: `${getScoreColor(result.uniquenessScore || 0)}.main` }}>
-                  {Math.round(result.uniquenessScore || 0)}
+                {getScoreIcon(clamp(result.uniquenessScore || 0))}
+                <Typography variant="h4" sx={{ ml: 1, color: `${getScoreColor(clamp(result.uniquenessScore || 0))}.main` }}>
+                  {fmt(result.uniquenessScore || 0)}
                 </Typography>
               </Box>
               <Typography variant="body2" color="text.secondary">
@@ -201,43 +205,43 @@ const DetectionResults: React.FC<DetectionResultsProps> = ({ result, isLoading =
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
               <Typography variant="body2" gutterBottom>
-                Lexical Diversity: {Math.round(result.detectionDetails?.qualityMetrics?.lexicalDiversity || 0)}%
+                Lexical Diversity: {fmt(result.detectionDetails?.qualityMetrics?.lexicalDiversity || 0)}%
               </Typography>
               <LinearProgress 
                 variant="determinate" 
-                value={result.detectionDetails?.qualityMetrics?.lexicalDiversity || 0}
-                color={getScoreColor(result.detectionDetails?.qualityMetrics?.lexicalDiversity || 0)}
+                value={clamp(result.detectionDetails?.qualityMetrics?.lexicalDiversity || 0)}
+                color={getScoreColor(clamp(result.detectionDetails?.qualityMetrics?.lexicalDiversity || 0))}
                 sx={{ mb: 2 }}
               />
 
               <Typography variant="body2" gutterBottom>
-                Sentence Variation: {Math.round(result.detectionDetails?.qualityMetrics?.sentenceVariation || 0)}%
+                Sentence Variation: {fmt(result.detectionDetails?.qualityMetrics?.sentenceVariation || 0)}%
               </Typography>
               <LinearProgress 
                 variant="determinate" 
-                value={result.detectionDetails?.qualityMetrics?.sentenceVariation || 0}
-                color={getScoreColor(result.detectionDetails?.qualityMetrics?.sentenceVariation || 0)}
+                value={clamp(result.detectionDetails?.qualityMetrics?.sentenceVariation || 0)}
+                color={getScoreColor(clamp(result.detectionDetails?.qualityMetrics?.sentenceVariation || 0))}
                 sx={{ mb: 2 }}
               />
             </Box>
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
               <Typography variant="body2" gutterBottom>
-                Vocabulary Complexity: {Math.round(result.detectionDetails?.qualityMetrics?.vocabularyComplexity || 0)}%
+                Vocabulary Complexity: {fmt(result.detectionDetails?.qualityMetrics?.vocabularyComplexity || 0)}%
               </Typography>
               <LinearProgress 
                 variant="determinate" 
-                value={result.detectionDetails?.qualityMetrics?.vocabularyComplexity || 0}
-                color={getScoreColor(result.detectionDetails?.qualityMetrics?.vocabularyComplexity || 0)}
+                value={clamp(result.detectionDetails?.qualityMetrics?.vocabularyComplexity || 0)}
+                color={getScoreColor(clamp(result.detectionDetails?.qualityMetrics?.vocabularyComplexity || 0))}
                 sx={{ mb: 2 }}
               />
 
               <Typography variant="body2" gutterBottom>
-                Coherence Score: {Math.round(result.detectionDetails?.qualityMetrics?.coherenceScore || 0)}%
+                Coherence Score: {fmt(result.detectionDetails?.qualityMetrics?.coherenceScore || 0)}%
               </Typography>
               <LinearProgress 
                 variant="determinate" 
-                value={result.detectionDetails?.qualityMetrics?.coherenceScore || 0}
-                color={getScoreColor(result.detectionDetails?.qualityMetrics?.coherenceScore || 0)}
+                value={clamp(result.detectionDetails?.qualityMetrics?.coherenceScore || 0)}
+                color={getScoreColor(clamp(result.detectionDetails?.qualityMetrics?.coherenceScore || 0))}
                 sx={{ mb: 2 }}
               />
             </Box>

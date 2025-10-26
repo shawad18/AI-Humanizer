@@ -16,7 +16,8 @@ import {
   Typography,
   IconButton,
   Avatar,
-  Fade
+  Fade,
+  Chip,
 } from '@mui/material';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import NavigationDrawer from './components/NavigationDrawer';
@@ -30,7 +31,10 @@ import {
   Settings,
   Api,
   Logout,
-  Home
+  Home,
+  Gavel,
+  ContentCopy,
+  Backspace,
 } from '@mui/icons-material';
 
 // Context Providers
@@ -45,9 +49,12 @@ import TextStatistics from './components/TextStatistics';
 import CustomizationPanel from './components/CustomizationPanel';
 import DetectionResults from './components/DetectionResults';
 import ExportDialog from './components/ExportDialog';
-import AcademicIntegrityDialog from './components/AcademicIntegrityDialog';
+// removed AcademicIntegrityDialog in favor of mandatory PolicyConsentModal
 import ResponsibleUseWarning from './components/ResponsibleUseWarning';
 import StatusBanner from './components/StatusBanner';
+import PolicyConsentModal from './components/PolicyConsentModal';
+import PolicyPage from './components/PolicyPage';
+import HumanizationPresets from './components/HumanizationPresets';
 
 import { DocumentManager } from './components/DocumentManager';
 import { CollaborationPanel } from './components/CollaborationPanel';
@@ -277,12 +284,45 @@ function MainApp() {
   const qualityBanner = useBanner();
   const analysisBanner = useBanner();
 
+  const handleCopyHumanized = async () => {
+    try {
+      if (!humanizedText.trim()) return;
+      await navigator.clipboard.writeText(humanizedText);
+      humanizeBanner.showBanner({
+        variant: 'success',
+        title: 'Copied to clipboard',
+        message: 'Humanized text has been copied.'
+      });
+    } catch (e) {
+      humanizeBanner.showBanner({
+        variant: 'error',
+        title: 'Copy failed',
+        message: 'Unable to copy to clipboard.'
+      });
+    }
+  };
+
+  const handleClearOriginal = () => {
+    setOriginalText('');
+    setHumanizedText('');
+    setDetectionResult(null);
+    setIsAnalyzing(false);
+    analysisBanner.closeBanner();
+    qualityBanner.closeBanner();
+    humanizeBanner.showBanner({
+      variant: 'info',
+      title: 'Cleared',
+      message: 'Input and output have been cleared.'
+    });
+  };
+
   const menuItems = [
     { id: 'humanizer', label: 'AI Humanizer', icon: <AutoFixHigh /> },
     { id: 'documents', label: 'Documents', icon: <Description /> },
     { id: 'collaboration', label: 'Collaboration', icon: <Group /> },
     { id: 'analytics', label: 'Analytics', icon: <Analytics /> },
     { id: 'api', label: 'API Documentation', icon: <Api /> },
+    { id: 'policy', label: 'Policy', icon: <Gavel /> },
   ];
 
   // Check integrity preferences on component mount
@@ -464,6 +504,8 @@ function MainApp() {
         return <AnalyticsDashboard />;
       case 'api':
         return <ApiDocumentation />;
+      case 'policy':
+        return <PolicyPage />;
       default:
         return (
           <Container maxWidth="xl" sx={{ py: 3 }}>
@@ -498,9 +540,19 @@ function MainApp() {
               </Fade>
             )}
 
-            <Grid spacing={3}>
+            {/* Active setting chips */}
+            <Box display="flex" gap={1} flexWrap="wrap" sx={{ mb: 2 }}>
+              <Chip label={`Tone: ${settings.tone}`} size="small" />
+              <Chip label={`Style: ${settings.writingStyle}`} size="small" />
+              <Chip label={`Formality: ${settings.formalityLevel}`} size="small" />
+              {typeof settings.aiDetectionAvoidance === 'number' && (
+                <Chip label={`Avoidance: ${settings.aiDetectionAvoidance}`} size="small" />
+              )}
+            </Box>
+
+            <Grid container spacing={4}>
                {/* Text Input Section */}
-               <Grid size={{ xs: 12, lg: 6 }}>
+               <Grid size={{ xs: 12, lg: 6 }} sx={{ mb: { xs: 3, lg: 0 } }}>
                 <Paper className="enhanced-card" sx={{ p: 3, height: '100%' }}>
                   <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                     <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -524,6 +576,14 @@ function MainApp() {
                           Upload
                         </Button>
                       </label>
+                      <Button
+                        variant="text"
+                        onClick={handleClearOriginal}
+                        startIcon={<Backspace />}
+                        sx={{ mr: 1 }}
+                      >
+                        Clear
+                      </Button>
                       <Button
                         variant="contained"
                         onClick={handleHumanize}
@@ -570,6 +630,15 @@ function MainApp() {
                     </Typography>
                     <Box>
                       <Button
+                        variant="text"
+                        onClick={handleCopyHumanized}
+                        disabled={!humanizedText.trim()}
+                        startIcon={<ContentCopy />}
+                        sx={{ mr: 1 }}
+                      >
+                        Copy
+                      </Button>
+                      <Button
                         variant="outlined"
                         onClick={handleAnalyze}
                         disabled={isAnalyzing || !humanizedText.trim()}
@@ -601,6 +670,9 @@ function MainApp() {
 
               {/* Customization Panel */}
                <Grid size={{ xs: 12, lg: 4 }}>
+                 <Box sx={{ mb: 2 }}>
+                   <HumanizationPresets onApply={(partial) => setSettings((prev) => ({ ...prev, ...partial }))} />
+                 </Box>
                  <CustomizationPanel
                    settings={settings}
                    onSettingsChange={setSettings}
@@ -628,10 +700,15 @@ function MainApp() {
               }}
             />
 
-            <AcademicIntegrityDialog
+            <PolicyConsentModal
               open={integrityDialogOpen}
-              onClose={() => setIntegrityDialogOpen(false)}
-              onAccept={() => setIntegrityDialogOpen(false)}
+              onAccept={() => {
+                integrityService.acceptGuidelines();
+                // Explicitly mark this session acknowledged
+                // (acceptGuidelines already does this; this ensures resilience if refactored)
+                try { sessionStorage.setItem('ai_humanizer_session_acknowledged', '1'); } catch {}
+                setIntegrityDialogOpen(false);
+              }}
             />
 
             {showResponsibleUseWarning && (

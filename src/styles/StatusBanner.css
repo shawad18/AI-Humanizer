@@ -1,9 +1,12 @@
 .status-banner {
   display: flex;
   width: 100%;
-  margin: 12px 0 16px;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  margin: 8px 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: #ffffff;
+  box-shadow: none;
+  color: inherit;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -12,78 +15,73 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 10px 12px;
+  padding: 8px 12px;
 }
 
 .status-banner__text {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .status-banner__title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
+  color: #111827; /* slate-900 */
 }
 
 .status-banner__message {
-  font-size: 13px;
-  opacity: 0.9;
+  font-size: 12px;
+  color: #6b7280; /* slate-500 */
 }
 
 .status-banner__actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .status-banner__action-btn {
-  margin-left: 4px;
+  margin-left: 2px;
 }
 
 /* Progress */
 .status-banner__progress {
-  margin-top: 6px;
+  margin-top: 4px;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 .status-banner__progress-bar {
-  width: 160px;
-  height: 6px;
-  border-radius: 6px;
-  background: rgba(255,255,255,0.35);
+  width: 140px;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.06);
   overflow: hidden;
 }
 .status-banner__progress-fill {
   height: 100%;
-  background: rgba(255,255,255,0.9);
+  background: #111827; /* slate-900 */
+  opacity: 0.35;
 }
 .status-banner__progress-label {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  color: #6b7280; /* slate-500 */
 }
 
-/* Variants */
-.status-banner--success {
-  background: #22c55e;
-  color: #ffffff;
-}
-.status-banner--warning {
-  background: #f59e0b;
-  color: #ffffff;
-}
-.status-banner--error {
-  background: #ef4444;
-  color: #ffffff;
-}
-.status-banner--info {
-  background: #3b82f6;
-  color: #ffffff;
-}
+/* Variants - use subtle left accent only */
+.status-banner--success { border-left: 3px solid #16a34a; }
+.status-banner--warning { border-left: 3px solid #f59e0b; }
+.status-banner--error   { border-left: 3px solid #ef4444; }
+.status-banner--info    { border-left: 3px solid #3b82f6; }
 
 /* Dark mode tweaks */
 @media (prefers-color-scheme: dark) {
-  .status-banner__message { opacity: 0.95; }
-  .status-banner__progress-bar { background: rgba(255,255,255,0.25); }
+  .status-banner { 
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.12);
+  }
+  .status-banner__message { color: rgba(255,255,255,0.7); }
+  .status-banner__progress-bar { background: rgba(255,255,255,0.15); }
+  .status-banner__progress-fill { background: rgba(255,255,255,0.85); }
 }

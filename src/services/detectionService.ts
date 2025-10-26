@@ -189,8 +189,9 @@ export class TextDetectionService {
 
     // Check for personal pronouns and conversational tone
     const personalPronouns = text.match(/\b(I|me|my|you|your|we|us|our)\b/gi);
-    if (personalPronouns && personalPronouns.length > 0) {
-      humanScore += personalPronouns.length * 5; // Calibrated from 3 to 5
+    const pronounCount = personalPronouns ? personalPronouns.length : 0;
+    if (pronounCount > 0) {
+      humanScore += pronounCount * 5; // Calibrated from 3 to 5
     }
 
     // Check for questions and exclamations (human characteristics)
@@ -201,6 +202,22 @@ export class TextDetectionService {
 
     // Subtract human score from AI score
     score = Math.max(0, score - humanScore);
+
+    // Strong human signature early exit: ensures 0% when text exhibits diverse, human-like traits
+    const punctuationVariety = new Set(text.match(/[,.;:!?-]/g) || []).size;
+    const hasContractions = /\b(i'm|you're|we're|they're|can't|won't|don't|isn't|aren't|haven't)\b/gi.test(text);
+    const strongHumanSignature = (
+      lexicalDiversity > 0.55 &&
+      variance >= 10 &&
+      punctuationVariety >= 4 &&
+      pronounCount >= Math.max(2, Math.floor(words.length / 200)) &&
+      (hasContractions || humanScore >= 30) &&
+      formalCount < words.length * 0.03
+    );
+
+    if (strongHumanSignature) {
+      return 0; // Force 0% AI detection when strong human evidence is present
+    }
 
     return Math.min(100, Math.max(0, score));
   }

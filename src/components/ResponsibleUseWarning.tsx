@@ -26,9 +26,18 @@ interface ResponsibleUseWarningProps {
   onDismiss?: () => void;
 }
 
+const baseAlertSx = {
+  mb: 2,
+  bgcolor: 'background.paper',
+  borderColor: 'divider',
+  color: 'text.secondary',
+  '& .MuiAlert-icon': { color: 'text.secondary' },
+  '& .MuiAlert-action': { color: 'text.secondary' },
+};
+
 const ResponsibleUseWarning: React.FC<ResponsibleUseWarningProps> = ({
   variant = 'compact',
-  severity = 'warning',
+  severity = 'info',
   onOpenGuidelines,
   showDismiss = false,
   onDismiss
@@ -42,16 +51,13 @@ const ResponsibleUseWarning: React.FC<ResponsibleUseWarningProps> = ({
   if (variant === 'compact') {
     return (
       <Alert 
-        severity={severity} 
-        sx={{ mb: 2 }}
+        severity={severity}
+        variant="outlined"
+        sx={baseAlertSx}
         action={
           <Box display="flex" alignItems="center" gap={1}>
             {onOpenGuidelines && (
-              <Button
-                size="small"
-                onClick={onOpenGuidelines}
-                startIcon={<School />}
-              >
+              <Button size="small" onClick={onOpenGuidelines}>
                 Guidelines
               </Button>
             )}
@@ -63,36 +69,32 @@ const ResponsibleUseWarning: React.FC<ResponsibleUseWarningProps> = ({
           </Box>
         }
       >
-        <AlertTitle>Responsible Use Reminder</AlertTitle>
-        This tool is designed for writing improvement, not to circumvent academic integrity policies. 
-        Always follow your institution's guidelines on AI assistance.
+        <AlertTitle sx={{ fontWeight: 600, color: 'text.primary' }}>Responsible Use</AlertTitle>
+        <Typography variant="body2">
+          Use this tool to improve writing and learning. Always follow your institution’s policies.
+        </Typography>
       </Alert>
     );
   }
 
   return (
-    <Alert severity={severity} sx={{ mb: 2 }}>
-      <AlertTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Security />
+    <Alert severity={severity} variant="outlined" sx={baseAlertSx}>
+      <AlertTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 600, color: 'text.primary' }}>
+        <Security sx={{ color: 'text.secondary' }} />
         Academic Integrity & Responsible Use
-        <IconButton
-          size="small"
-          onClick={handleToggleExpanded}
-          sx={{ ml: 'auto' }}
-        >
+        <IconButton size="small" onClick={handleToggleExpanded} sx={{ ml: 'auto' }}>
           {expanded ? <ExpandLess /> : <ExpandMore />}
         </IconButton>
       </AlertTitle>
       
       <Typography variant="body2" paragraph>
-        This AI humanization tool is designed to assist with writing improvement and learning. 
-        Please use it responsibly and in accordance with academic integrity principles.
+        This AI humanization tool supports better writing. Please use it responsibly and in line with academic integrity.
       </Typography>
 
       <Collapse in={expanded}>
         <Box sx={{ mt: 2 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Key Reminders:
+          <Typography variant="subtitle2" gutterBottom color="text.primary">
+            Key Reminders
           </Typography>
           
           <Box sx={{ mb: 2 }}>
@@ -120,35 +122,20 @@ const ResponsibleUseWarning: React.FC<ResponsibleUseWarningProps> = ({
           </Box>
 
           <Typography variant="body2" paragraph>
-            <strong>Appropriate Use:</strong> Improving clarity, learning writing techniques, 
-            enhancing non-native language expression, preparing drafts for revision.
+            Appropriate: improving clarity, learning techniques, enhancing expression, preparing drafts for revision.
           </Typography>
 
           <Typography variant="body2" paragraph>
-            <strong>Inappropriate Use:</strong> Submitting AI content as original work, 
-            circumventing detection for deception, violating institutional policies.
+            Not appropriate: submitting AI content as original work, circumventing detection, violating policies.
           </Typography>
 
           <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             {onOpenGuidelines && (
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={onOpenGuidelines}
-                startIcon={<School />}
-              >
-                View Full Guidelines
+              <Button size="small" variant="text" onClick={onOpenGuidelines}>
+                View Guidelines
               </Button>
             )}
-            
-            <Button
-              size="small"
-              variant="text"
-              href="https://www.academicintegrity.org/"
-              target="_blank"
-              rel="noopener"
-              startIcon={<Info />}
-            >
+            <Button size="small" variant="text" href="https://www.academicintegrity.org/" target="_blank" rel="noopener">
               Learn More
             </Button>
           </Box>
@@ -156,9 +143,9 @@ const ResponsibleUseWarning: React.FC<ResponsibleUseWarningProps> = ({
       </Collapse>
 
       {showDismiss && onDismiss && (
-        <Box sx={{ mt: 2 }}>
+        <Box sx={{ mt: 1 }}>
           <Button size="small" onClick={onDismiss}>
-            I Understand - Dismiss
+            I Understand — Dismiss
           </Button>
         </Box>
       )}

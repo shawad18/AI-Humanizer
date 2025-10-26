@@ -183,6 +183,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('ai-humanizer-user');
+    try { sessionStorage.removeItem('ai_humanizer_session_acknowledged'); } catch {}
   };
 
   const updateUser = (updates: Partial<User>) => {

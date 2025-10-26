@@ -14,6 +14,12 @@ export interface HumanizationSettings {
   aiDetectionAvoidance: number;
   linguisticFingerprinting: number;
   audience: 'general' | 'academic' | 'professional' | 'student' | 'experts';
+  // Output formatting options (optional)
+  formattingMode?: 'preserve' | 'auto' | 'paragraphs' | 'markdown';
+  maxParagraphSentences?: number; // default 3
+  normalizeWhitespace?: boolean;  // default true
+  listConversion?: 'none' | 'bullet' | 'markdown';
+  maxLineLength?: number; // soft wrap hint, default undefined
 }
 
 export interface HumanizationResult {

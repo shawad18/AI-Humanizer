@@ -18,6 +18,7 @@ class IntegrityService {
   private readonly STORAGE_KEY = 'ai_humanizer_integrity_prefs';
   private readonly USAGE_LOG_KEY = 'ai_humanizer_usage_log';
   private readonly WARNING_DURATION_DAYS = 7; // Show warnings again after 7 days
+  private readonly SESSION_ACK_KEY = 'ai_humanizer_session_acknowledged';
 
   /**
    * Get user's integrity preferences from localStorage
@@ -60,30 +61,20 @@ class IntegrityService {
     preferences.hasAcceptedGuidelines = true;
     preferences.lastAcceptedDate = new Date().toISOString();
     this.savePreferences(preferences);
+
+    // Also mark current session as acknowledged
+    try {
+      sessionStorage.setItem(this.SESSION_ACK_KEY, '1');
+    } catch (error) {
+      console.warn('Failed to mark session acknowledgment:', error);
+    }
   }
 
   /**
    * Check if user needs to see the integrity dialog
+   * Modified to disable the modal entirely.
    */
   shouldShowIntegrityDialog(): boolean {
-    const preferences = this.getPreferences();
-    
-    // Always show for new users
-    if (!preferences.hasAcceptedGuidelines) {
-      return true;
-    }
-
-    // Check if guidelines were accepted more than 30 days ago
-    if (preferences.lastAcceptedDate) {
-      const lastAccepted = new Date(preferences.lastAcceptedDate);
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      if (lastAccepted < thirtyDaysAgo) {
-        return true;
-      }
-    }
-
     return false;
   }
 
@@ -211,8 +202,20 @@ class IntegrityService {
     try {
       localStorage.removeItem(this.STORAGE_KEY);
       localStorage.removeItem(this.USAGE_LOG_KEY);
+      sessionStorage.removeItem(this.SESSION_ACK_KEY);
     } catch (error) {
       console.warn('Failed to clear integrity data:', error);
+    }
+  }
+
+  /**
+   * Clear only the session acknowledgment (use on logout)
+   */
+  clearSessionAcknowledgement(): void {
+    try {
+      sessionStorage.removeItem(this.SESSION_ACK_KEY);
+    } catch (error) {
+      console.warn('Failed to clear session acknowledgment:', error);
     }
   }
 

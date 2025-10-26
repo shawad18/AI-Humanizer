@@ -1,3 +1,16 @@
+import {
+  Document,
+  Packer,
+  Paragraph,
+  HeadingLevel,
+  AlignmentType,
+  TextRun,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType
+} from 'docx';
+
 export interface ExportOptions {
   format: 'txt' | 'docx' | 'pdf' | 'html' | 'latex' | 'markdown' | 'rtf';
   filename?: string;
@@ -262,10 +275,10 @@ export class ExportService {
   }
 
   private static async exportAsDocx(data: ExportData, filename: string, options: ExportOptions): Promise<void> {
-    // For DOCX export, we'll create a simple XML-based document
-    // In a real implementation, you might use a library like docx or mammoth
-    const content = this.createDocxContent(data, options);
-    this.downloadFile(content, `${filename}.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    // Build a proper OOXML DOCX using the docx library
+    const doc = this.buildDocxDocument(data, options);
+    const blob = await Packer.toBlob(doc);
+    this.downloadBlob(blob, `${filename}.docx`);
   }
 
   private static async exportAsPdf(data: ExportData, filename: string, options: ExportOptions): Promise<void> {
@@ -288,15 +301,123 @@ export class ExportService {
     }
   }
 
-  private static createDocxContent(data: ExportData, options: ExportOptions): string {
-    // Simplified DOCX structure - in production, use a proper DOCX library
-    let content = data.humanizedText;
-    
+  private static buildDocxDocument(data: ExportData, options: ExportOptions): Document {
+    const children: Paragraph[] = [];
+
+    // Title
+    children.push(new Paragraph({
+      text: data.title || 'AI Text Humanizer Export',
+      heading: HeadingLevel.TITLE,
+      alignment: AlignmentType.CENTER
+    }));
+
+    // Metadata
     if (options.includeMetadata) {
-      content = `AI Text Humanizer Export\nGenerated: ${data.timestamp}\n\n${content}`;
+      children.push(new Paragraph(''));
+      children.push(new Paragraph({ text: `Generated: ${data.timestamp}` }));
+      if (data.author) children.push(new Paragraph({ text: `Author: ${data.author}` }));
+      if (data.wordCount) children.push(new Paragraph({ text: `Word Count: ${data.wordCount}` }));
+      if (data.characterCount) children.push(new Paragraph({ text: `Character Count: ${data.characterCount}` }));
+      children.push(new Paragraph(''));
     }
-    
-    return content;
+
+    // Original Text (optional)
+    if (data.originalText && options.includeAnalysis) {
+      children.push(new Paragraph({ text: 'Original Text', heading: HeadingLevel.HEADING_2 }));
+      this.createParagraphsFromText(data.originalText).forEach(p => children.push(p));
+      children.push(new Paragraph(''));
+    }
+
+    // Humanized Text
+    children.push(new Paragraph({ text: 'Humanized Text', heading: HeadingLevel.HEADING_2 }));
+    this.createParagraphsFromText(data.humanizedText).forEach(p => children.push(p));
+    children.push(new Paragraph(''));
+
+    // Analysis Results (optional)
+    if (options.includeAnalysis && data.detectionResult) {
+      children.push(new Paragraph({ text: 'Analysis Results', heading: HeadingLevel.HEADING_2 }));
+
+      const metricsTable = new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph('Metric')] }),
+              new TableCell({ children: [new Paragraph('Score')] }),
+            ],
+          }),
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph('AI Detection Score')] }),
+              new TableCell({ children: [new Paragraph(`${(data.detectionResult.aiDetectionScore * 100).toFixed(1)}%`)] }),
+            ],
+          }),
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph('Plagiarism Risk')] }),
+              new TableCell({ children: [new Paragraph(`${data.detectionResult.plagiarismRisk}`)] }),
+            ],
+          }),
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph('Readability Score')] }),
+              new TableCell({ children: [new Paragraph(`${data.detectionResult.readabilityScore.toFixed(1)}`)] }),
+            ],
+          }),
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph('Uniqueness Score')] }),
+              new TableCell({ children: [new Paragraph(`${(data.detectionResult.uniquenessScore * 100).toFixed(1)}%`)] }),
+            ],
+          })
+        ]
+      });
+      // Insert table as paragraphs via doc children manipulation
+      // docx supports arrays of paragraphs and tables in section children
+
+      const analysisChildren: (Paragraph | Table)[] = [metricsTable];
+      if (data.detectionResult.recommendations?.length) {
+        analysisChildren.push(new Paragraph(''));
+        analysisChildren.push(new Paragraph({ text: 'Recommendations', heading: HeadingLevel.HEADING_3 }));
+        data.detectionResult.recommendations.forEach((rec: string, idx: number) => {
+          analysisChildren.push(new Paragraph({
+            children: [new TextRun({ text: `${idx + 1}. ${rec}` })]
+          }));
+        });
+      }
+
+      // We will merge analysisChildren into children by casting
+      (analysisChildren as Paragraph[]).forEach((c: any) => children.push(c as Paragraph));
+      children.push(new Paragraph(''));
+    }
+
+    const doc = new Document({
+      sections: [
+        {
+          properties: {
+            page: options.customStyling?.margins
+              ? {
+                  margin: {
+                    top: options.customStyling.margins.top * 566, // cm to twips approx
+                    right: options.customStyling.margins.right * 566,
+                    bottom: options.customStyling.margins.bottom * 566,
+                    left: options.customStyling.margins.left * 566,
+                  },
+                }
+              : undefined,
+          },
+          children,
+        },
+      ],
+    });
+
+    return doc;
+  }
+
+  private static createParagraphsFromText(text: string): Paragraph[] {
+    if (!text) return [new Paragraph('')];
+    const lines = text.replace(/\r\n/g, '\n').split('\n');
+    return lines.map(line => new Paragraph({ children: [new TextRun({ text: line })] }));
   }
 
   private static createPdfHtml(data: ExportData, options: ExportOptions): string {
@@ -384,6 +505,18 @@ export class ExportService {
     document.body.removeChild(link);
     
     // Clean up the URL object
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  }
+
+  private static downloadBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(url), 100);
   }
 

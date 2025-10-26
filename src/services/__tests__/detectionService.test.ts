@@ -221,4 +221,21 @@ describe('DetectionService', () => {
       expect(result).toHaveProperty('riskLevel');
     });
   });
+
+  describe('Zero score override', () => {
+    it('returns 0 AI score for strong human signature', async () => {
+      const text = [
+        "Hey — so here’s the thing: I’m genuinely excited about this, but I also have a couple of nagging doubts; you know how it is.",
+        "We tried a few approaches, and, honestly, some of them felt clunky — not wrong, just… too tidy.",
+        "I keep asking myself: does it read like a real person? (Because if it doesn’t, I’d rather fix it than pretend.)",
+        "Anyway, we’ll tweak bits here and there—add a dash of personality, a few contractions, and vary the rhythm. It’s better that way!",
+        "You get the idea, right? Sometimes you just iterate, listen, adjust, repeat… and then smile when it finally clicks."
+      ].join(' ');
+
+      const result = await detectionService.analyzeText(text);
+      expect(result.aiDetectionScore).toBe(0);
+      expect(result.riskLevel).toBe('low');
+      expect(result.isAIGenerated).toBe(false);
+    });
+  });
 });

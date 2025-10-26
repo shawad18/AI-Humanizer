@@ -154,22 +154,22 @@ const TextStatistics: React.FC<TextStatisticsProps> = ({ originalText, humanized
       </Typography>
 
       {humanizedText.trim() && (
-        <Paper elevation={1} sx={{ p: 2, mb: 2, backgroundColor: quality.color === 'default' ? 'grey.100' : quality.color + '.light' }}>
+        <Paper elevation={0} variant="outlined" sx={{ p: 2, mb: 2, bgcolor: 'background.paper', borderColor: 'divider' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
             {quality.score >= 60 ? (
-              <CheckCircle color={quality.color === 'default' ? 'inherit' : quality.color as any} />
+              <CheckCircle sx={{ color: 'text.secondary' }} />
             ) : (
-              <Warning color={quality.color === 'default' ? 'inherit' : quality.color as any} />
+              <Warning sx={{ color: 'text.secondary' }} />
             )}
-            <Typography variant="subtitle2" color={quality.color === 'default' ? 'text.primary' : quality.color + '.dark'}>
+            <Typography variant="subtitle2" color="text.primary">
               Humanization Quality: {quality.label}
             </Typography>
           </Box>
           <LinearProgress 
             variant="determinate" 
             value={quality.score} 
-            color={quality.color === 'default' ? 'primary' : quality.color as any}
-            sx={{ height: 8, borderRadius: 4 }}
+            color="primary"
+            sx={{ height: 4, borderRadius: 2 }}
           />
           <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
             {Math.round(quality.score)}% - Based on readability, complexity, and sentence variation
@@ -212,8 +212,8 @@ const TextStatistics: React.FC<TextStatisticsProps> = ({ originalText, humanized
             <LinearProgress 
               variant="determinate" 
               value={humanizedMetrics.readabilityScore} 
-              color={humanizedMetrics.readabilityScore > originalMetrics.readabilityScore ? 'success' : 'primary'}
-              sx={{ height: 6, borderRadius: 3, mb: 0.5 }}
+              color="primary"
+              sx={{ height: 4, borderRadius: 2, mb: 0.5 }}
             />
             <Typography variant="caption" color="text.secondary">
               {originalMetrics.readabilityScore}% → {humanizedMetrics.readabilityScore}%
@@ -227,8 +227,8 @@ const TextStatistics: React.FC<TextStatisticsProps> = ({ originalText, humanized
             <LinearProgress 
               variant="determinate" 
               value={100 - humanizedMetrics.complexityScore} 
-              color={humanizedMetrics.complexityScore < originalMetrics.complexityScore ? 'success' : 'warning'}
-              sx={{ height: 6, borderRadius: 3, mb: 0.5 }}
+              color="primary"
+              sx={{ height: 4, borderRadius: 2, mb: 0.5 }}
             />
             <Typography variant="caption" color="text.secondary">
               {originalMetrics.complexityScore}% → {humanizedMetrics.complexityScore}% (lower is better)

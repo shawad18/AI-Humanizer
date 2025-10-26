@@ -681,6 +681,20 @@ export class AdvancedHumanizationEngine {
     appliedTechniques.push('Personality Injection');
     confidence += 5;
 
+    // Final avoidance filter to reduce AI detector triggers
+    humanizedText = this.applyAIDetectorAvoidanceFilters(humanizedText, settings.aiDetectionAvoidance);
+    appliedTechniques.push('AI Detector Avoidance Filters');
+
+    // Punctuation moderation to reduce excessive commas and parentheses
+    humanizedText = this.moderatePunctuation(humanizedText);
+    appliedTechniques.push('Punctuation Moderation');
+
+    // Output formatting for improved arrangement and readability
+    if (settings.formattingMode && settings.formattingMode !== 'preserve') {
+      humanizedText = this.formatOutput(humanizedText, settings);
+      appliedTechniques.push('Output Formatting');
+    }
+
     // Adjust confidence based on text length - shorter texts have less opportunity for humanization
     const textLength = text.length;
     let lengthAdjustment = 1.0;
@@ -966,20 +980,24 @@ export class AdvancedHumanizationEngine {
     private enhanceTransitions(text: string): string {
       const sentences = text.split(/(?<=[.!?])\s+/);
       if (sentences.length < 2) return text;
-      
+
+      // Use more natural, less formal transitions to avoid detector triggers
       const transitions = [
-        'Furthermore,', 'Additionally,', 'Moreover,', 'However,', 
-        'Nevertheless,', 'Consequently,', 'Therefore,', 'Meanwhile,'
+        'Also,', 'Plus,', 'That said,', 'On the other hand,',
+        'By the way,', 'In fact,', 'Meanwhile,', 'Even so,'
       ];
-      
-      // Add transitions between some sentences
-      for (let i = 1; i < sentences.length; i++) {
-        if (Math.random() < 0.3) { // 30% chance to add transition
+
+      // Add transitions between some sentences with a cap to prevent repetition
+      let inserted = 0;
+      const maxInsertions = Math.max(1, Math.floor(sentences.length / 5));
+      for (let i = 1; i < sentences.length && inserted < maxInsertions; i++) {
+        if (Math.random() < 0.25) { // 25% chance to add transition
           const transition = transitions[Math.floor(Math.random() * transitions.length)];
-          sentences[i] = transition + ' ' + sentences[i].toLowerCase();
+          sentences[i] = transition + ' ' + sentences[i].replace(/^\s*/, '').replace(/^[A-Z]/, c => c.toLowerCase());
+          inserted++;
         }
       }
-      
+
       return sentences.join(' ');
     }
 
@@ -1069,6 +1087,115 @@ export class AdvancedHumanizationEngine {
       return sentences.join(' ');
     }
 
+    private moderatePunctuation(text: string): string {
+      let t = text;
+
+      // Remove pet phrases surrounded by commas
+      t = t.replace(/\s*,\s*(you know|like|basically|literally|honestly|actually|sort of|kind of|I mean)\s*,\s*/gi, ' ');
+
+      // Remove filler clauses surrounded by commas
+      t = t.replace(/\s*,\s*(which is important to note|as we can see|it should be mentioned|worth considering)\s*,\s*/gi, ' ');
+
+      // Remove empty parentheses and parentheses with filler phrases
+      t = t.replace(/\(\s*\)/g, '');
+      t = t.replace(/\(\s*(you know|like|basically|literally|honestly|actually|sort of|kind of|I mean)\s*\)/gi, '');
+
+      // Remove parentheses that contain only commas or punctuation (e.g., "(, ,)" or "( - )")
+      t = t.replace(/\(\s*(?:,\s*)+\)/g, '');
+      t = t.replace(/\(\s*[,.!?;:\-]+\s*\)/g, '');
+
+      // Normalize spacing around parentheses
+      t = t.replace(/\(\s+/g, '(').replace(/\s+\)/g, ')');
+
+      // Trim heavy comma after sentence-start transitions
+      t = t.replace(/(^|[\.!?\n]\s+)(Also|Plus|That said|On the other hand|By the way|In fact|Meanwhile|Even so|In other words|Speaking of which|As a matter of fact|What's more)\s*,\s*/gi,
+        (_match, lead, phrase) => `${lead}${phrase} `);
+
+      // Collapse duplicate commas and fix spacing around punctuation
+      t = t.replace(/,\s*,+/g, ', ');
+      t = t.replace(/\s{2,}/g, ' ')
+           .replace(/\s+([,.!?;:])/g, '$1')
+           .replace(/([,.!?;:])([^\s])/g, '$1 $2');
+
+      // Remove stray comma before a period
+      t = t.replace(/,\s*\./g, '.');
+
+      return t.trim();
+    }
+
+    private formatOutput(text: string, settings: HumanizationSettings): string {
+      const mode = settings.formattingMode || 'preserve';
+      if (mode === 'preserve') return text;
+
+      let t = text;
+
+      // Normalize whitespace
+      const normalize = settings.normalizeWhitespace !== false;
+      if (normalize) {
+        t = t
+          .replace(/\r\n/g, '\n')
+          .replace(/\t/g, ' ')
+          .replace(/[ \u00A0]{2,}/g, ' ')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim();
+      }
+
+      const maxSentences = settings.maxParagraphSentences && settings.maxParagraphSentences > 0
+        ? settings.maxParagraphSentences
+        : 3;
+
+      const toParagraphs = () => {
+        const sentences = t
+          .split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
+          .map(s => s.trim())
+          .filter(Boolean);
+
+        if (sentences.length === 0) return;
+
+        const paragraphs: string[] = [];
+        for (let i = 0; i < sentences.length; i += maxSentences) {
+          paragraphs.push(sentences.slice(i, i + maxSentences).join(' '));
+        }
+        t = paragraphs.join('\n\n');
+      };
+
+      if (mode === 'paragraphs' || mode === 'auto' || mode === 'markdown') {
+        toParagraphs();
+      }
+
+      // List conversion: normalize bullets and numbered lists
+      const listMode = settings.listConversion || 'none';
+      if (listMode !== 'none') {
+        // Numbered list lines like "1. item" or "1) item" -> "- item"
+        t = t.replace(/^[ \t]*\d+[.)]\s+/gm, '- ');
+        // Normalize other bullet markers to hyphen
+        t = t.replace(/^[ \t]*[\*•]\s+/gm, '- ');
+      }
+
+      // Soft wrap lines if configured
+      if (settings.maxLineLength && settings.maxLineLength > 10) {
+        const maxLen = settings.maxLineLength;
+        t = t.split('\n').map(line => {
+          if (line.length <= maxLen) return line;
+          const words = line.split(' ');
+          const parts: string[] = [];
+          let curr = '';
+          for (const w of words) {
+            if ((curr ? curr.length + 1 : 0) + w.length <= maxLen) {
+              curr = curr ? curr + ' ' + w : w;
+            } else {
+              if (curr) parts.push(curr);
+              curr = w;
+            }
+          }
+          if (curr) parts.push(curr);
+          return parts.join('\n');
+        }).join('\n');
+      }
+
+      return t.trim();
+    }
+
     private applySubjectSpecificLanguage(text: string, subjectArea?: string): string {
       if (!subjectArea) return text;
       
@@ -1147,13 +1274,42 @@ export class AdvancedHumanizationEngine {
           };
           return contractions[match.toLowerCase()] || match;
         }),
-        'academic': (t) => t.replace(/\bI think\b/gi, 'It is posited that').replace(/\bshows\b/gi, 'demonstrates'),
+        'academic': (t) => t.replace(/\bI think\b/gi, 'It is posited that').replace(/\bshows\b/gi, 'illustrates'),
         'creative': (t) => t.replace(/\bvery\b/gi, 'incredibly').replace(/\bgood\b/gi, 'magnificent'),
-        'technical': (t) => t.replace(/\buse\b/gi, 'implement').replace(/\bmake\b/gi, 'construct')
+        'technical': (t) => t.replace(/\buse\b/gi, 'apply').replace(/\bmake\b/gi, 'build')
       };
       
       const adjustment = styleAdjustments[writingStyle.toLowerCase()];
       return adjustment ? adjustment(text) : text;
+    }
+
+    // Final pass to avoid common AI-detector trigger terms
+    private applyAIDetectorAvoidanceFilters(text: string, intensity: number): string {
+      if (intensity <= 0.3) return text;
+
+      const replacements: Array<{ pattern: RegExp; replace: string }> = [
+        { pattern: /\bFurthermore,\b/gi, replace: 'Also,' },
+        { pattern: /\bMoreover,\b/gi, replace: 'Also,' },
+        { pattern: /\bAdditionally,\b/gi, replace: 'Plus,' },
+        { pattern: /\bConsequently,\b/gi, replace: 'As a result,' },
+        { pattern: /\bTherefore,\b/gi, replace: 'So,' },
+        { pattern: /\butilize\b/gi, replace: 'use' },
+        { pattern: /\bfacilitate\b/gi, replace: 'help' },
+        { pattern: /\bimplement(ation)?\b/gi, replace: 'apply' },
+        { pattern: /\bmethodology\b/gi, replace: 'approach' },
+        { pattern: /\bsystematic\b/gi, replace: 'thorough' },
+        { pattern: /\bcomprehensive\b/gi, replace: 'wide-ranging' },
+        { pattern: /\boptimal\b/gi, replace: 'best' }
+      ];
+
+      let result = text;
+      const passes = intensity > 0.7 ? 2 : 1;
+      for (let p = 0; p < passes; p++) {
+        replacements.forEach(({ pattern, replace }) => {
+          result = result.replace(pattern, replace);
+        });
+      }
+      return result;
     }
 
     private addPersonality(text: string, personalityStrength: number, tone: string): string {
@@ -1191,7 +1347,14 @@ export class AdvancedHumanizationEngine {
       clearTimeout(this.batchTimer);
       this.batchTimer = null;
     }
-    // Clear any pending batch queue
+    // Limit cache size
+    if (this.resultCache.size > this.MAX_CACHE_SIZE) {
+      const entries = Array.from(this.resultCache.entries());
+      entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+      const toDelete = entries.slice(0, this.resultCache.size - this.MAX_CACHE_SIZE);
+      toDelete.forEach(([key]) => this.resultCache.delete(key));
+    }
+    // Clean any pending batch queue
     this.batchQueue = [];
   }
 }

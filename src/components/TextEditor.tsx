@@ -39,6 +39,8 @@ const TextEditor: React.FC<TextEditorProps> = ({
   const [isEditingOriginal, setIsEditingOriginal] = useState(false);
   const [tempHumanizedText, setTempHumanizedText] = useState(humanizedText);
   const [tempOriginalText, setTempOriginalText] = useState(originalText);
+  // Keep a backup of the humanized text when entering edit mode so Cancel can restore it
+  const [humanizedBackup, setHumanizedBackup] = useState(humanizedText);
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
 
   React.useEffect(() => {
@@ -65,12 +67,14 @@ const TextEditor: React.FC<TextEditorProps> = ({
   };
 
   const handleSaveEdit = () => {
-    onHumanizedTextChange(tempHumanizedText);
+    // Changes are already synced live; just exit edit mode
     setIsEditingHumanized(false);
   };
 
   const handleCancelEdit = () => {
-    setTempHumanizedText(humanizedText);
+    // Restore backup to both temp and parent state
+    setTempHumanizedText(humanizedBackup);
+    onHumanizedTextChange(humanizedBackup);
     setIsEditingHumanized(false);
   };
 
@@ -144,7 +148,13 @@ const TextEditor: React.FC<TextEditorProps> = ({
         <Box sx={{ display: 'flex', gap: 1 }}>
           {isEditable && !isEditing && (
             <Tooltip title="Edit text">
-              <IconButton size="small" onClick={onEdit}>
+              <IconButton size="small" onClick={() => {
+                // When entering edit mode, capture current visible value as backup
+                if (type === 'humanized') {
+                  setHumanizedBackup(text);
+                }
+                onEdit && onEdit();
+              }}>
                 <Edit />
               </IconButton>
             </Tooltip>
@@ -197,7 +207,10 @@ const TextEditor: React.FC<TextEditorProps> = ({
           value={type === 'humanized' ? tempHumanizedText : (type === 'original' ? tempOriginalText : text)}
           onChange={(e) => {
             if (type === 'humanized') {
-              setTempHumanizedText(e.target.value);
+              const val = e.target.value;
+              setTempHumanizedText(val);
+              // Sync edits to parent so Export uses current text even during editing
+              onHumanizedTextChange(val);
             } else if (type === 'original') {
               setTempOriginalText(e.target.value);
             } else if (onChange) {
@@ -282,21 +295,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
       )}
 
       <Grid spacing={2} sx={{ height: 'calc(100vh - 300px)' }}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <TextPanel
-            title="Original Text"
-            text={isEditingOriginal ? tempOriginalText : originalText}
-            onChange={onOriginalTextChange}
-            isEditable={true}
-            isEditing={isEditingOriginal}
-            onEdit={() => setIsEditingOriginal(true)}
-            onSave={handleSaveOriginalEdit}
-            onCancel={handleCancelOriginalEdit}
-            type="original"
-          />
-        </Grid>
-        
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid size={{ xs: 12 }}>
           <TextPanel
             title="Humanized Text"
             text={isEditingHumanized ? tempHumanizedText : humanizedText}
@@ -311,9 +310,9 @@ const TextEditor: React.FC<TextEditorProps> = ({
       </Grid>
 
       {humanizedText && !isEditingHumanized && (
-        <Box sx={{ mt: 3, p: 2, backgroundColor: 'success.light', borderRadius: 1 }}>
-          <Typography variant="body2" color="success.dark">
-            ✓ Text has been humanized! You can edit the result, copy it, or download it as a file.
+        <Box sx={{ mt: 3, p: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            ✓ Text has been humanized. You can edit, copy, or download the result.
           </Typography>
         </Box>
       )}

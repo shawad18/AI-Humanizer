@@ -268,4 +268,13 @@ describe('HumanizationEngine', () => {
       expect(['low', 'medium', 'high']).toContain(humanResult.detectionRisk);
     });
   });
+
+  describe('Punctuation moderation', () => {
+    it('removes parentheses containing only commas or punctuation', async () => {
+      const text = 'This looks strange (, ,) but should be cleaned ( - ). Right?';
+      const result = await humanizationEngine.humanizeText(text, defaultSettings);
+      expect(result.text).not.toMatch(/\(\s*(?:,\s*)+\)/);
+      expect(result.text).not.toMatch(/\(\s*[,.!?;:\-]+\s*\)/);
+    });
+  });
 });
