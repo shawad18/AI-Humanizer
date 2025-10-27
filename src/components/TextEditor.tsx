@@ -35,9 +35,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
   onHumanizedTextChange,
   isProcessing
 }) => {
-  const [isEditingHumanized, setIsEditingHumanized] = useState(false);
-  const [isEditingOriginal, setIsEditingOriginal] = useState(false);
-  const [tempHumanizedText, setTempHumanizedText] = useState(humanizedText);
+  const [isEditingHumanized, setIsEditingHumanized] = useState(false);  const [tempHumanizedText, setTempHumanizedText] = useState(humanizedText);
   const [tempOriginalText, setTempOriginalText] = useState(originalText);
   // Keep a backup of the humanized text when entering edit mode so Cancel can restore it
   const [humanizedBackup, setHumanizedBackup] = useState(humanizedText);
@@ -77,17 +75,6 @@ const TextEditor: React.FC<TextEditorProps> = ({
     onHumanizedTextChange(humanizedBackup);
     setIsEditingHumanized(false);
   };
-
-  const handleSaveOriginalEdit = () => {
-    onOriginalTextChange(tempOriginalText);
-    setIsEditingOriginal(false);
-  };
-
-  const handleCancelOriginalEdit = () => {
-    setTempOriginalText(originalText);
-    setIsEditingOriginal(false);
-  };
-
   const handlePaste = (e: React.ClipboardEvent, type: 'original' | 'humanized') => {
     e.preventDefault();
     const pastedText = e.clipboardData.getData('text/plain');

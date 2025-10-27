@@ -1102,13 +1102,13 @@ export class AdvancedHumanizationEngine {
 
       // Remove parentheses that contain only commas or punctuation (e.g., "(, ,)" or "( - )")
       t = t.replace(/\(\s*(?:,\s*)+\)/g, '');
-      t = t.replace(/\(\s*[,.!?;:\-]+\s*\)/g, '');
+      t = t.replace(/\(\s*[,.!?;:-]+\s*\)/g, '');
 
       // Normalize spacing around parentheses
       t = t.replace(/\(\s+/g, '(').replace(/\s+\)/g, ')');
 
       // Trim heavy comma after sentence-start transitions
-      t = t.replace(/(^|[\.!?\n]\s+)(Also|Plus|That said|On the other hand|By the way|In fact|Meanwhile|Even so|In other words|Speaking of which|As a matter of fact|What's more)\s*,\s*/gi,
+      t = t.replace(/(^|[.!?\n]\s+)(Also|Plus|That said|On the other hand|By the way|In fact|Meanwhile|Even so|In other words|Speaking of which|As a matter of fact|What's more)\s*,\s*/gi,
         (_match, lead, phrase) => `${lead}${phrase} `);
 
       // Collapse duplicate commas and fix spacing around punctuation
@@ -1169,7 +1169,7 @@ export class AdvancedHumanizationEngine {
         // Numbered list lines like "1. item" or "1) item" -> "- item"
         t = t.replace(/^[ \t]*\d+[.)]\s+/gm, '- ');
         // Normalize other bullet markers to hyphen
-        t = t.replace(/^[ \t]*[\*•]\s+/gm, '- ');
+        t = t.replace(/^[ \t]*[*•]\s+/gm, '- ');
       }
 
       // Soft wrap lines if configured
@@ -1305,9 +1305,9 @@ export class AdvancedHumanizationEngine {
       let result = text;
       const passes = intensity > 0.7 ? 2 : 1;
       for (let p = 0; p < passes; p++) {
-        replacements.forEach(({ pattern, replace }) => {
+        for (const { pattern, replace } of replacements) {
           result = result.replace(pattern, replace);
-        });
+        }
       }
       return result;
     }
