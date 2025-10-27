@@ -45,7 +45,6 @@ import { DocumentProvider } from './contexts/DocumentContext';
 // Components
 import TextEditor from './components/TextEditor';
 import DocumentUploader from './components/DocumentUploader';
-import TextStatistics from './components/TextStatistics';
 import CustomizationPanel from './components/CustomizationPanel';
 import DetectionResults from './components/DetectionResults';
 import ExportDialog from './components/ExportDialog';
@@ -611,13 +610,7 @@ function MainApp() {
                     isProcessing={isProcessing}
                   />
 
-                  {/* Statistics panel */}
-                  <Box sx={{ mt: 2 }}>
-                    <TextStatistics
-                      originalText={originalText}
-                      humanizedText={humanizedText}
-                    />
-                  </Box>
+                  
                 </Paper>
               </Grid>
 
