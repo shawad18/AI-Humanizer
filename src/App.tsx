@@ -407,12 +407,6 @@ function MainApp() {
     try {
       const result = await humanizationEngine.humanizeText(originalText, settings);
       setHumanizedText(result.text);
-      // Show success banner
-      humanizeBanner.showBanner({
-        variant: 'success',
-        title: 'Text has been humanized!',
-        message: 'You can edit the result, copy it, or download it as a file.'
-      });
       // Quality banner
       const q = computeQuality(originalText, result.text);
       const variant = q.label === 'Excellent' || q.label === 'Good' ? 'success' : q.label === 'Fair' ? 'warning' : 'error';
